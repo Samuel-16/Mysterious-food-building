@@ -1,0 +1,250 @@
+
+
+#Item enum
+WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384
+item_enum={1:"wood sword",2:"apple",4:"apples",8:"health potion",16:"health potion x2",32:"chair",64:"staircase",128:"knife",256:"resturant",512:"bone",1024:"rusted sword",2048:"normal sword",4096:"steel sword",8192:"coin",16384:"brush"}
+#npc enum
+npc_enum={1:"maid",2:"guard",4:"viscount",8:"orc",16:"chef",32:"human",64:"tree",128:"family member"}
+MAID,GUARD,VISCOUNT,ORC,CHEF,HUMAN,TREE,FAMILY_MEMBER=1,2,4,8,16,32,64,128
+#npc/item enum
+NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
+full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())
+#Type enum
+ROOM,CLEARING,CORRIDOR=0,1,2
+type_enum=("room","clearing","corridor")
+#Action enum
+GO,GET,DROP,FIGHT,MEET,EAT,SWING,QUIT,RESET,HELP=0,1,2,3,4,5,6,7,8,9
+command_enum=("GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP")
+
+class parse_result():
+  obj=-1
+  com=-1
+  err=2
+
+class Location():
+  north=0
+  east=0
+  west=0
+  south=0
+  up=0
+  down=0
+  type_=0
+  npcs=0
+  items=0
+  discription=""
+  
+  def __init__(s,north=0,east=0,west=0,south=0,up=0,down=0,items=0,type_=0,npcs=0,discription=""):
+    s.north=north
+    s.east=east
+    s.west=west
+    s.south=south
+    s.up=up
+    s.down=down
+    s.items=items
+    s.type_=type_
+    s.npcs=npcs
+    s.discription=discription
+
+loc=4
+inventory=3
+
+locs=[
+  None,
+  Location(type_=ROOM,south=4,discription=\
+    """It's a conservatory.
+There is a nice view of the lanscape and forest."""),
+  Location(type_=CLEARING,east=4,discription=\
+    """It's surrounded by a wooden fence."""),
+  Location(type_=CORRIDOR,west=4,east=5,discription=\
+    """It's a dark, moist, stone corridor."""),
+  Location(items=WOOD_SWORD+ROOM,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,discription=\
+    """It's a small wodden room."""),
+  Location(type_=ROOM,west=3,discription=\
+    """It's a stone, prison-like room."""),
+]
+
+def check_can_hold_multiple(arr:int):
+  return bool(arr&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS))
+
+def parse_com_check(arr,enum=None) -> int:
+  "return signed char; positive if a valid command was detected, otherwise -1."
+  for i in range(len(arr)):
+    if arr[i]=="" and ((not hasattr(enum, '__getitem__'))or enum[i]!=""): # This will become a check to see if a null character has been reached.
+      return i
+  return -1
+
+def parse(inp_str) -> parse_result:
+  "Parse user input."
+  out=parse_result()
+  
+  commands=list(command_enum) # Coppying the array may require multiple commands
+  
+  i=0
+  while i < len(inp_str):
+    # <Return if null-turminator will go here>
+    for j in range(len(commands)):
+      if (commands[j]!="")and inp_str[i].upper()==commands[j][0]:commands[j]=commands[j][1:] # This will be pointer incrementation
+    i+=1
+    out.com=parse_com_check(commands)
+    if out.com!=-1:break
+  if i>=len(inp_str):return out # Line might be removed in other implementations.
+  out.err=1
+  
+  objs=list(full_enum) # Coppying the array may require multiple commands
+  
+  while i < len(inp_str):
+    # <Return if null-turminator will go here>
+    for j in range(len(objs)):
+      if (objs[j]!="")and inp_str[i].lower()==objs[j][0]:objs[j]=objs[j][1:] # This will be pointer incrementation
+    i+=1
+    out.obj=parse_com_check(objs,full_enum)
+    if out.obj!=-1:break
+  if i>=len(inp_str) and out.obj==-1:return out # Line might be removed in other implementations.
+  out.err=0
+  return out
+
+def do_action(action:parse_result):
+  global loc
+  global inventory
+  location=locs[loc]
+  print(action.com,action.obj,action.err)
+  if action.err==2:
+    print("Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n")
+    return
+  if action.err==1:
+    if action.com>=QUIT:return
+    print("Invalid object to %s" % command_enum[action.com])
+    return
+  
+  obj_name=full_enum[action.obj]
+  match action.com:
+    case 0:#GO
+      match action.obj:
+        case 8:#NORTH
+          if location.north==0:
+            print("No way to go north.")
+            return
+          loc=location.north
+        case 9:#EAST
+          if location.east==0:
+            print("No way to go east.")
+            return
+          loc=location.east
+        case 10:#SOUTH
+          if location.south==0:
+            print("No way to go south.")
+            return
+          loc=location.south
+        case 11:#WEST
+          if location.west==0:
+            print("No way to go west.")
+            return
+          loc=location.west
+        case _:
+          print("%s is an invalid direction." % obj_name)
+          return
+      print("You are in a %s" % type_enum[location.type_])
+      print(location.discription)
+      return
+    case 1:#GET
+      if action.obj<16:
+        print("%s is not an item." % obj_name)
+        return
+      item_bit=1<<(action.obj-16)
+      if item_bit & location.items==0:
+        print("There is no %s on the ground." % obj_name)
+        return
+      if bool(item_bit & inventory):
+        print("%s is already in your inventory." % obj_name)
+        return
+      location.items=location.items ^ item_bit
+      inventory=inventory ^ item_bit
+      print("You picked up the %s" % obj_name)
+    case 2:#Drop
+      if action.obj<16:
+        print("%s is not an item." % obj_name)
+        return
+      item_bit=1<<(action.obj-16)
+      if bool(item_bit & location.items):
+        print("%s is already on the floor." % obj_name)
+        return
+      if item_bit & inventory==0:
+        print("You don't have any %s." % obj_name)
+        return
+      location.items=location.items ^ item_bit
+      inventory=inventory ^ item_bit
+      print("You picked up the %s" % obj_name)
+    case 3:#FIGHT
+      if action.obj>=8:
+        print("No %s to fight." % obj_name)
+        return
+      #TODO Implement fighting.
+    case 4:#MEET
+      # First check if it is somthing that is actually present.
+      if action.obj<8:
+        item_bit=1<<action.obj
+        if location.npcs & item_bit==0:
+          print("The %s is not in this room." % obj_name)
+          return
+      elif action.obj<16:
+        item_bit=0 # This variable will be used differently on this path.
+        match action.obj:
+          case 8:item_bit=int(not bool(location.north))
+          case 9:item_bit=int(not bool(location.east))
+          case 10:item_bit=int(not bool(location.south))
+          case 11:item_bit=int(not bool(location.west))
+          case 12:item_bit=int(not bool(location.up))
+          case 13:item_bit=int(not bool(location.down))
+          case 14:item_bit=int(True)
+          case 15:item_bit=int(True)
+        if bool(item_bit):
+          print("There is nothing %s.", % obj_name)
+          return
+      else:
+        item_bit=1<<(action.obj-16)
+        if (location.items|inventory) & item_bit==0:
+          print("There is no %s." % obj_name)
+          return
+      # Then display info about it.
+      #TODO implement
+    case 5:#EAT
+      # First check if it is somthing that is actually present.
+      if action.obj<8:
+        item_bit=1<<action.obj
+        if location.npcs & item_bit==0:
+          print("The %s is not in this room." % obj_name)
+          return
+      elif action.obj<16:
+        print("Ya can't eat a direction...")
+        return
+      else:
+        item_bit=1<<(action.obj-16)
+        if (location.items|inventory) & item_bit==0:
+          print("There is no %s." % obj_name)
+          return
+      # Then resolve what happens when the object is eaten.
+      #TODO implement
+    case 6:#SWING
+      if action.obj<16:
+        print("%s is not an item." % obj_name)
+        return
+      item_bit=1<<(action.obj-16)
+      if item_bit & inventory==0:
+        print("You don't have any %s." % obj_name)
+        return
+      #TODO implement
+
+
+if __name__=="__main__":
+  print("You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.")
+  print("Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n")
+
+  type_str=type_enum[locs[loc].type_] # Maybe this would be `char *type_str=type_enum[locs[loc].type];`?
+  print("You are in a %s" % type_str)
+  print(locs[loc].discription)
+  command=input("What will you do? >")
+  action=parse(command)
+  while action.com!=QUIT:
+    do_action(action)
+    command=input(">")
+    action=parse(command)
