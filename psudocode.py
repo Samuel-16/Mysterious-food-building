@@ -1,11 +1,12 @@
-
+from time import sleep
+from random import random as ran
 
 #Item enum
 WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384
 item_enum={1:"wood sword",2:"apple",4:"apples",8:"health potion",16:"health potion x2",32:"chair",64:"staircase",128:"knife",256:"resturant",512:"bone",1024:"rusted sword",2048:"normal sword",4096:"steel sword",8192:"coin",16384:"brush"}
 #npc enum
-npc_enum={1:"maid",2:"guard",4:"viscount",8:"orc",16:"chef",32:"human",64:"tree",128:"family member"}
 MAID,GUARD,VISCOUNT,ORC,CHEF,HUMAN,TREE,FAMILY_MEMBER=1,2,4,8,16,32,64,128
+npc_enum={1:"maid",2:"guard",4:"viscount",8:"orc",16:"chef",32:"human",64:"tree",128:"family member"}
 #npc/item enum
 NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
 full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())
@@ -34,33 +35,47 @@ class Location():
   discription=""
   
   def __init__(s,north=0,east=0,west=0,south=0,up=0,down=0,items=0,type_=0,npcs=0,discription=""):
-    s.north=north
-    s.east=east
-    s.west=west
-    s.south=south
-    s.up=up
-    s.down=down
-    s.items=items
-    s.type_=type_
-    s.npcs=npcs
-    s.discription=discription
+    s.north=int(north)
+    s.east=int(east)
+    s.west=int(west)
+    s.south=int(south)
+    s.up=int(up)
+    s.down=int(down)
+    s.items=int(items)
+    s.type_=int(type_)
+    s.npcs=int(npcs)
+    s.discription=str(discription)
+
+class Npc():
+  inventory=0
+  hp=4
+  avo=0.05
+  def __init__(s,inv=0,hp=4,avo=0.05):
+    s.inventory=int(inv)
+    s.hp=int(hp)
+    s.avo=float(avo)
 
 loc=4
 inventory=3
+eaten_items=0
+eaten_npcs=0
 
 locs=[
   None,
-  Location(type_=ROOM,south=4,discription=\
+  Location(type_=ROOM,south=4,west=6,discription=\
     """It's a conservatory.
 There is a nice view of the lanscape and forest."""),
-  Location(type_=CLEARING,east=4,discription=\
+  Location(type_=CLEARING,east=4,north=6,discription=\
     """It's surrounded by a wooden fence."""),
-  Location(type_=CORRIDOR,west=4,east=5,discription=\
+  Location(type_=CORRIDOR,west=4,east=5,npcs=MAID,discription=\
     """It's a dark, moist, stone corridor."""),
   Location(items=WOOD_SWORD+ROOM,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,discription=\
     """It's a small wodden room."""),
-  Location(type_=ROOM,west=3,discription=\
+  Location(type_=ROOM,west=3,npcs=GUARD,discription=\
     """It's a stone, prison-like room."""),
+  Location(type_=CLEARING,east=1,south=2,discription=\
+    """You stand on a patch of grass on a tiny hill in an open area.
+The breeze feels nice."""),
 ]
 
 def check_can_hold_multiple(arr:int):
@@ -106,8 +121,9 @@ def parse(inp_str) -> parse_result:
 def do_action(action:parse_result):
   global loc
   global inventory
+  global eaten_npcs
   location=locs[loc]
-  print(action.com,action.obj,action.err)
+  print(action.com,action.obj,action.err) # Debug line. Remove later.
   if action.err==2:
     print("Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n")
     return
@@ -125,26 +141,30 @@ def do_action(action:parse_result):
             print("No way to go north.")
             return
           loc=location.north
+          print("You went north.")
         case 9:#EAST
           if location.east==0:
             print("No way to go east.")
             return
           loc=location.east
+          print("You went east.")
         case 10:#SOUTH
           if location.south==0:
             print("No way to go south.")
             return
           loc=location.south
+          print("You went south.")
         case 11:#WEST
           if location.west==0:
             print("No way to go west.")
             return
           loc=location.west
+          print("You went west.")
         case _:
           print("%s is an invalid direction." % obj_name)
           return
-      print("You are in a %s" % type_enum[location.type_])
-      print(location.discription)
+      print("You are in a %s." % type_enum[locs[loc].type_])
+      print(locs[loc].discription)
       return
     case 1:#GET
       if action.obj<16:
@@ -194,11 +214,11 @@ def do_action(action:parse_result):
           case 10:item_bit=int(not bool(location.south))
           case 11:item_bit=int(not bool(location.west))
           case 12:item_bit=int(not bool(location.up))
-          case 13:item_bit=int(not bool(location.down))
+          case 13:item_bit=int(not (bool(location.down)or loc==4))
           case 14:item_bit=int(True)
           case 15:item_bit=int(True)
         if bool(item_bit):
-          print("There is nothing %s.", % obj_name)
+          print("There is nothing %s." % obj_name)
           return
       else:
         item_bit=1<<(action.obj-16)
@@ -211,6 +231,9 @@ def do_action(action:parse_result):
       # First check if it is somthing that is actually present.
       if action.obj<8:
         item_bit=1<<action.obj
+        if bool(item_bit & ((eaten_npcs>>8)&(eaten_npcs%256))):
+          print("You have already eaten the %s." % obj_name)
+          return
         if location.npcs & item_bit==0:
           print("The %s is not in this room." % obj_name)
           return
