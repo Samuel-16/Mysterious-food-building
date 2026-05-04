@@ -2,8 +2,8 @@ from time import sleep
 from random import random as ran
 
 #Item enum
-WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384
-item_enum={1:"wood sword",2:"apple",4:"apples",8:"health potion",16:"health potion x2",32:"chair",64:"staircase",128:"knife",256:"resturant",512:"bone",1024:"rusted sword",2048:"normal sword",4096:"steel sword",8192:"coin",16384:"brush"}
+WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH,LEVER=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768
+item_enum={1:"wood sword",2:"apple",4:"Apples",8:"health potion",16:"Health Potionx2",32:"chair",64:"staircase",128:"knife",256:"resturant",512:"bone",1024:"rusted sword",2048:"normal sword",4096:"steel sword",8192:"coin",16384:"brush",32768:"lever"}
 #npc enum
 MAID,GUARD,VISCOUNT,ORC,CHEF,HUMAN,TREE,FAMILY_MEMBER=1,2,4,8,16,32,64,128
 npc_enum={1:"maid",2:"guard",4:"viscount",8:"orc",16:"chef",32:"human",64:"tree",128:"family member"}
@@ -11,8 +11,8 @@ npc_enum={1:"maid",2:"guard",4:"viscount",8:"orc",16:"chef",32:"human",64:"tree"
 NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
 full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())
 #Type enum
-ROOM,CLEARING,CORRIDOR=0,1,2
-type_enum=("room","clearing","corridor")
+ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE=0,1,2,3,4,5,6,7
+type_enum=("room","clearing","corridor","prison","bedroom","courtroom","forest","village")
 #Action enum
 GO,GET,DROP,FIGHT,MEET,EAT,SWING,QUIT,RESET,HELP=0,1,2,3,4,5,6,7,8,9
 command_enum=("GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP")
