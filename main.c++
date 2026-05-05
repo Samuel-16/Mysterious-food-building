@@ -7,9 +7,8 @@
 #include <cstdint> // For better practice int types.
 
 // Set datatype names. to avoid needing to type longer names repeatedly.
-// A byte will be a one byte positive integer; a bytebyte will be a two byte positive integer.
-using byte=std::uint8_t;
-using bytebyte=std::uint16_t
+using byte=std::uint8_t;      // A byte will be a one byte positive integer
+using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 
 // Ennumerate by powers of two.
 // Obtainable items.
@@ -62,6 +61,7 @@ using bytebyte=std::uint16_t
 "wood sword", "apple", "Apples", "health potion", "Health Potionx2", "chair", "staircase", "knife",
 "resturant", "bone", "rusted sword", "normal sword", "steel sword", "coin", "brush", "lever"}
 
+// Ennumerations for types of rooms.
 // Automatic ennumeration as increments of 1.
 ;enum Type{
     ROOM,
@@ -77,6 +77,7 @@ using bytebyte=std::uint16_t
 ;const char type_enum[8][10]=
 {"room","clearing","corridor","prison","bedroom","courtroom","forest","village"}
 
+// Ennumerations for player commands.
 ;enum Action{
     GO,
     GET,
@@ -90,13 +91,13 @@ using bytebyte=std::uint16_t
     HELP
 }
 
-;const char command_enum[][6]=
+;const char command_enum[10][6]=
 {"GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP"}
 
-
+// A structure to be returned from the parse meathod.
 ;struct parse_result{
-    std::int8_t obj=-1;
-    std::int8_t com=-1;
+    std::int_least8_t obj=-1;//Corrisponds with an item in the full_enum.
+    std::int_least8_t com=-1;//Corrisponds with an item in the command_enum.
     byte err=2;
 }
 
@@ -140,7 +141,74 @@ There is a nice view of the lanscape and forest.)"},
     R"(You stand on a patch of grass on a tiny hill in an open area.
 The breeze feels nice.)"}}
 
+;std::int_least8_t parse_com_check(const char** arr,int arr_size){
+    for (byte i=0;i<arr_size;i++){
+        if (*arr[i]=='\0'){
+            return i;
+        }
+    }
+    return -1;
+}
+
+;parse_result parse(std::string inp_str){
+    ;parse_result out={-1,-1,2}
+    ;if (inp_str.length()>=255){ // Return if the string is too big. Should not be possible due to the input buffer size limit.
+        std::cout<<"ERROR reading input!\n";
+        std::cerr<<"Input length exceeded 255!\n"<<"This should not be possible.\n";
+        return out;}
+
+    ;const byte command_enum_length=sizeof(command_enum)/sizeof(command_enum[0])
+
+    ;const char* commands[command_enum_length] // Mutable vaiable pointing to constant data.
+    ;for (byte i=0;i<command_enum_length;i++) // Set the values in the commands array.
+       {commands[i]=*command_enum+i*sizeof(command_enum[0]);} // Values are pointers to constant chars declared in global scope.
+
+    ;byte i=0
+    ;while (i < inp_str.length()){
+        for (byte j=0;j<command_enum_length;j++){
+            if (*commands[j]!='\0' && std::toupper(inp_str[i])==*commands[j]) {commands[j]++;}}
+        i++;
+        out.com=parse_com_check(commands,command_enum_length);
+        if (out.com!=-1){break;}
+    }
+    if (i>=inp_str.length() && out.obj==-1){return out;} // If the while-loop didn't break, return with the error value left at 2.
+    ;out.err=1 // Reduce the error value from 2 to 1, to show that the first step completed successfuly.
+
+    ;const byte full_enum_length=sizeof(full_enum)/sizeof(full_enum[0])
+    
+    ;const char* objs[full_enum_length] // Mutable vaiable pointing to constant data.
+    ;for (byte i=0;i<full_enum_length;i++) // Set the values in the objs array.
+       {objs[i]=*full_enum+i*sizeof(full_enum[0]);} // Values are pointers to constant chars declared in global scope.
+
+    ;i=0
+    ;while (i < inp_str.length()){
+        for (byte j=0;j<full_enum_length;j++){
+            if (*objs[j]!='\0' && std::tolower(inp_str[i])==*objs[j]) {objs[j]++;}}
+        i++;
+        out.obj=parse_com_check(objs,full_enum_length);
+        if (out.obj!=-1){break;}
+    }
+    if (i>=inp_str.length() && out.obj==-1){return out;} // If the while-loop didn't break, return with the error value left at 1.
+    ;out.err=0 // Set the error value to 0, to show that the first step completed successfuly.
+
+    ;return out
+;}
+
 ;int main() {
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
-    ;std::cout<<"Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
+    << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
+    << "You are in a " << type_enum[locs[loc].type] << ".\n"
+    << locs[loc].discription << '\n'
+    << "What will you do? >"
+    ;char input_buffer[256]
+    ;std::cin.getline(input_buffer,255)
+    
+    ;parse_result action=parse(input_buffer)
+    ;while (action.com!=QUIT){
+        /*Call do_action*/
+        ;std::cout<< '{' <<(int) action.com << ',' <<(int) action.obj << ',' <<(int) action.err <<'}' //  Debug line. Remove later.
+        ;std::cout<<'>'
+        ;std::cin.getline(input_buffer,255)
+        ;action=parse(input_buffer)
+    ;}
 ;}
