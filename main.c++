@@ -194,6 +194,189 @@ The breeze feels nice.)"}}
     ;return out
 ;}
 
+;void do_action(parse_result action){
+    ;Location &location=locs[loc]
+    ;bytebyte item_bit // In event of undefined behaviour; initialise at zero.
+    ;if(action.err==2){
+        std::cout<<"Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n";
+        return;}
+    ;if(action.err==1){
+        if(action.com>=QUIT){return;}
+        std::cout<<"Invalid object to "<<command_enum[action.com]<<".\n";
+        return;}
+
+    ;const char* obj_name=full_enum[action.obj]
+    ;switch(action.com){
+        case GO:
+          switch(action.obj){
+            case NORTH:
+              if(location.north==0){
+                std::cout<<"No way to go north.\n";
+                return;}
+              loc=location.north;
+              std::cout<<"You went north.\n";
+              break;
+            case EAST:
+              if(location.east==0){
+                std::cout<<"No way to go east.\n";
+                return;}
+              loc=location.east;
+              std::cout<<"You went east.\n";
+              break;
+            case SOUTH:
+              if(location.south==0){
+                std::cout<<"No way to go south.\n";
+                return;}
+              loc=location.south;
+              std::cout<<"You went south.\n";
+              break;
+            case WEST:
+              if(location.west==0){
+                std::cout<<"No way to go west.\n";
+                return;}
+              loc=location.west;
+              std::cout<<"You went west.\n";
+              break;
+            case UP:
+              if(location.up==0){
+                std::cout<<"No way to go up.\n";
+                return;}
+              loc=location.up;
+              std::cout<<"You went up.\n";
+              break;
+            case DOWN:
+              if(location.down==0){
+                std::cout<<"No way to go down.\n";
+                return;}
+              loc=location.down;
+              std::cout<<"You went down.\n";
+              break;
+            default:
+              std::cout<<obj_name<<" is an invalid direction.\n";
+              return;
+          }
+          std::cout
+          << "You are in a " << type_enum[locs[loc].type] << ".\n"
+          << locs[loc].discription << '\n'
+          ;break;
+        case GET:
+          if(action.obj<16){
+            std::cout<<obj_name<<" is not an item.\n";
+            return;}
+          ;item_bit=1<<(action.obj-16)
+          ;if ((item_bit & location.items)==0){
+            std::cout<<"There is no "<<obj_name<<" on the ground.\n";
+            return;}
+          ;if(item_bit & inventory){
+            std::cout<<obj_name<<" is already in your inventory.\n";
+            return;}
+          ;location.items=location.items ^ item_bit
+          ;inventory=inventory ^ item_bit
+          ;std::cout<<"You picked up the "<<obj_name<<".\n"
+          ;break;
+        case DROP:
+          if(action.obj<16){
+            std::cout<<obj_name<<" is not an item.\n";
+            return;}
+          ;item_bit=1<<(action.obj-16)
+          ;if (item_bit & location.items){
+            std::cout<<obj_name<<" is already on the floor.\n";
+            return;}
+          ;if((item_bit & inventory)==0){
+            std::cout<<"You don't have any "<<obj_name<<".\n";
+            return;}
+          ;location.items=location.items ^ item_bit
+          ;inventory=inventory ^ item_bit
+          ;std::cout<<"The "<<obj_name<<" landed on the floor.\n"
+          ;break;
+        case FIGHT:
+          if(action.obj>=8){
+            std::cout<<"Can't fight "<<obj_name<<".\n";
+            return;}
+          // TODO Implement fighting.
+          break;
+        case MEET:
+          // First check if it is somthing that is actually present.
+          if(action.obj<8){
+            item_bit=1<<action.obj;
+            if((location.npcs & item_bit)==0){
+              std::cout<<"The "<<obj_name<<" is not in this room.\n";
+              return;}}
+          else if(action.obj<16){
+            item_bit=0; // This variable will be used differently on this path. It will be treated like a bool.
+            switch(action.obj){
+              case NORTH:
+                item_bit=location.north;
+                break;
+              case EAST:
+                item_bit=location.east;
+                break;
+              case SOUTH:
+                item_bit=location.south;
+                break;
+              case WEST:
+                item_bit=location.west;
+                break;
+              case UP:
+                item_bit=location.up;
+                break;
+              case DOWN:
+                item_bit=location.down;
+                break;
+              case LEFT:
+                item_bit=1;//location.left;
+                break;
+              case RIGHT:
+                item_bit=1;//location.right;
+                break;}
+            if(item_bit!=0){
+              std::cout<<"There is nothing "<<obj_name<<".\n";
+              return;}}
+          else{
+            item_bit=1<<(action.obj-16);
+            if (((location.items|inventory) & item_bit)==0){
+              std::cout<<"There is no "<<obj_name<<".\n";
+              return;
+            }}
+          // Then display info about it.
+          //TODO implement.
+          break;
+        case EAT:
+          // First check if it is somthing that is actually present.
+          if(action.obj<8){
+            item_bit=1<<action.obj;
+            if(item_bit & ((eaten_npcs>>8)&(eaten_npcs%256))){ // & both bytes of eaten_npcs together before comparing it to item_bit.
+              std::cout<<"You have already eaten the "<<obj_name<<".\n";
+              return;}
+            if((location.npcs & item_bit)==0){
+              std::cout<<"The "<<obj_name<<" is not in this room.\n";
+              return;}}
+          else if(action.obj<16){
+            std::cout<<"Ya can't eat a direction...\n";
+            return;}
+          else{
+            item_bit=1<<(action.obj-16);
+            if (((location.items|inventory) & item_bit)==0){
+              std::cout<<"There is no "<<obj_name<<".\n";
+              return;
+            }}
+          // Then resolve what happens when the object is eaten.
+          //TODO implement
+          break;
+        case SWING:
+          if(action.obj<16){
+            std::cout<<obj_name<<" is not an item.\n";
+            return;}
+          item_bit=1<<(action.obj-16);
+          if((item_bit & inventory)==0){
+            std::cout<<"You don't have any "<<obj_name<<".\n";
+            return;}
+          // Then resolve what happens when the object is swung.
+          //TODO implement
+          break;
+    }
+;}
+
 ;int main() {
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
     << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
@@ -205,7 +388,7 @@ The breeze feels nice.)"}}
     
     ;parse_result action=parse(input_buffer)
     ;while (action.com!=QUIT){
-        /*Call do_action*/
+        ;do_action(action)
         ;std::cout<< '{' <<(int) action.com << ',' <<(int) action.obj << ',' <<(int) action.err <<'}' //  Debug line. Remove later.
         ;std::cout<<'>'
         ;std::cin.getline(input_buffer,255)
