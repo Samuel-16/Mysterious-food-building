@@ -24,7 +24,7 @@ command_enum=("GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESE
            "VISIT","LIFT","THROW","HIT",  "CHECK", "SWALL","USE",  "EXIT", "RESTA", "HINT",\
               "行","取",   "落",   "戦",     "合",   "食",   "振",    "辞",   "リ",    "助",\
               "訪","拾",   "投",   "当",     "見",   "飲",   "使",    "出",   "再",    "仄",\
-"SAVE","セーブ")
+"SAVE","セ")
 
 class parse_result():
   obj=-1

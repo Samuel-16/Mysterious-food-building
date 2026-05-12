@@ -103,7 +103,7 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 "VISIT","LIFT","THROW","HIT",  "CHECK", "SWALL","USE",  "EXIT", "RESTA", "HINT",\
   "行","取",   "落",   "戦",     "合",   "食",   "振",    "辞",   "リ",    "助",\
   "訪","拾",   "投",   "当",     "見",   "飲",   "使",    "出",   "再",    "仄",\
-"SAVE","セーブ"}
+"SAVE","セ"}
 
 // A structure to be returned from the parse meathod.
 ;struct parse_result{
@@ -169,6 +169,7 @@ The breeze feels nice.)"}}
         std::cerr<<"Input length exceeded 255!\n"<<"This should not be possible.\n";
         return out;}
 
+    ;bool using_non_ascii=false; 
     ;const byte command_enum_length=sizeof(command_enum)/sizeof(command_enum[0])
 
     ;const char* commands[command_enum_length] // Mutable vaiable pointing to constant data.
@@ -177,8 +178,9 @@ The breeze feels nice.)"}}
 
     ;byte i=0
     ;while (i < inp_str.length()){
+        using_non_ascii=using_non_ascii||(128 & inp_str[i]); // Ensure case conversion can be disabled if non ascii is detected.
         for (byte j=0;j<command_enum_length;j++){
-            if (*commands[j]!='\0' && std::toupper(inp_str[i])==*commands[j]) {commands[j]++;}}
+            if (*commands[j]!='\0' && (using_non_ascii?inp_str[i]:std::toupper(inp_str[i]))==*commands[j]) {commands[j]++;}}
         i++;
         out.com=parse_com_check(commands,command_enum_length);
         if (out.com!=-1){break;}
@@ -197,7 +199,7 @@ The breeze feels nice.)"}}
     ;i=0
     ;while (i < inp_str.length()){
         for (byte j=0;j<full_enum_length;j++){
-            if (*objs[j]!='\0' && std::tolower(inp_str[i])==*objs[j]) {objs[j]++;}}
+            if (*objs[j]!='\0' && (using_non_ascii?inp_str[i]:std::tolower(inp_str[i]))==*objs[j]) {objs[j]++;}}
         i++;
         out.obj=parse_com_check(objs,full_enum_length);
         if (out.obj!=-1){break;}
