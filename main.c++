@@ -55,11 +55,17 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 }
 
 // A reverse ennumeration for index lookup at runtime.
-;const char full_enum[32][16]=
+;const char full_enum[80][16]=
 {"maid", "guard", "viscount", "orc", "chef", "human", "tree", "family member",
 "north", "east", "south", "west", "up", "down", "left", "right",
 "wood sword", "apple", "Apples", "health potion", "Health Potionx2", "chair", "staircase", "knife",
-"resturant", "bone", "rusted sword", "normal sword", "steel sword", "coin", "brush", "lever"}
+"restaurant", "bone", "rusted sword", "normal sword", "steel sword", "coin", "brush", "lever",
+"メイド", "守衛", "子爵", "鬼", "コック", "人間", "木", "家の人",
+"北", "東", "南", "西", "上", "下", "左", "右",
+"林の刀", "りんご", "Apples", "治癒薬", "Health Potionx2", "椅子", "階段", "包丁",
+"食堂", "骨", "錆びた剣", "普通の剣", "鋼の剣", "硬貨", "刷子", "レバー",
+"林の剣", "林檎", "Apples", "体力ポーシ", "Health Potionx2", "チェア", "段々", "ナイフ",
+"レストラン", "ボーン", "錆びた刀", "普通の刀", "鋼の刀", "コイン", "ブラシ", "てこ",}
 
 // Ennumerations for types of rooms.
 // Automatic ennumeration as increments of 1.
@@ -74,8 +80,9 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     VILLAGE
 }
 
-;const char type_enum[8][10]=
-{"room","clearing","corridor","prison","bedroom","courtroom","forest","village"}
+;const char type_enum[16][10]=
+{"room","clearing","corridor","prison","bedroom","courtroom","forest","village",
+"部屋","開墾","廊下","刑務所","寝室","公判廷","森","村"}
 
 // Ennumerations for player commands.
 ;enum Action{
@@ -91,8 +98,12 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     HELP
 }
 
-;const char command_enum[10][6]=
-{"GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP"}
+;const char command_enum[42][6]=
+{  "GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP",\
+"VISIT","LIFT","THROW","HIT",  "CHECK", "SWALL","USE",  "EXIT", "RESTA", "HINT",\
+  "行","取",   "落",   "戦",     "合",   "食",   "振",    "辞",   "リ",    "助",\
+  "訪","拾",   "投",   "当",     "見",   "飲",   "使",    "出",   "再",    "仄",\
+"SAVE","セーブ"}
 
 // A structure to be returned from the parse meathod.
 ;struct parse_result{
@@ -111,7 +122,8 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     byte down=0;
     byte npcs=0;
     bytebyte items=0;
-    std::string discription="MISSING DISCRIPTION";
+    std::string description="MISSING DESCRIPTION";
+    std::string jp_description="エラー: 説明がありません";
 }
 
 ;struct Npc{
@@ -126,18 +138,18 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 ;byte eaten_npcs=0
 
 ;Location locs[]={{0},
-  {.type=ROOM,.south=4,.west=6,.discription=
+  {.type=ROOM,.south=4,.west=6,.description=
     R"(It's a conservatory.
 There is a nice view of the lanscape and forest.)"},
-  {.type=CLEARING,.north=6,.east=4,.discription=
+  {.type=CLEARING,.north=6,.east=4,.description=
     R"(It's surrounded by a wooden fence.)"},
-  {.type=CORRIDOR,.east=5,.west=4,.npcs=MAID,.discription=
+  {.type=CORRIDOR,.east=5,.west=4,.npcs=MAID,.description=
     R"(It's a dark, moist, stone corridor.)"},
-  {.type=ROOM,.north=1,.east=3,.west=2,.items=WOOD_SWORD+ROOM,.discription=
+  {.type=ROOM,.north=1,.east=3,.west=2,.items=WOOD_SWORD+ROOM,.description=
     R"(It's a small wodden room.)"},
-  {.type=ROOM,.west=3,.npcs=GUARD,.discription=
+  {.type=ROOM,.west=3,.npcs=GUARD,.description=
     R"(It's a stone, prison-like room.)"},
-  {.type=CLEARING,.east=1,.south=2,.discription=
+  {.type=CLEARING,.east=1,.south=2,.description=
     R"(You stand on a patch of grass on a tiny hill in an open area.
 The breeze feels nice.)"}}
 
@@ -175,6 +187,8 @@ The breeze feels nice.)"}}
     ;out.err=1 // Reduce the error value from 2 to 1, to show that the first step completed successfuly.
 
     ;const byte full_enum_length=sizeof(full_enum)/sizeof(full_enum[0])
+    ;i=out.com<20? i : 0 // i if out.com<20 else 0
+    ;out.com=out.com<40 ?(out.com%10): 10
     
     ;const char* objs[full_enum_length] // Mutable vaiable pointing to constant data.
     ;for (byte i=0;i<full_enum_length;i++) // Set the values in the objs array.
@@ -191,6 +205,7 @@ The breeze feels nice.)"}}
     if (i>=inp_str.length() && out.obj==-1){return out;} // If the while-loop didn't break, return with the error value left at 1.
     ;out.err=0 // Set the error value to 0, to show that the first step completed successfuly.
 
+    ;out.obj=(out.obj>=64? out.obj-16 : out.obj)%32
     ;return out
 ;}
 
@@ -257,7 +272,7 @@ The breeze feels nice.)"}}
           }
           std::cout
           << "You are in a " << type_enum[locs[loc].type] << ".\n"
-          << locs[loc].discription << '\n'
+          << locs[loc].description << '\n'
           ;break;
         case GET:
           if(action.obj<16){
@@ -381,7 +396,7 @@ The breeze feels nice.)"}}
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
     << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
     << "You are in a " << type_enum[locs[loc].type] << ".\n"
-    << locs[loc].discription << '\n'
+    << locs[loc].description << '\n'
     << "What will you do? >"
     ;char input_buffer[256]
     ;std::cin.getline(input_buffer,255)
@@ -390,7 +405,7 @@ The breeze feels nice.)"}}
     ;while (action.com!=QUIT){
         ;do_action(action)
         ;std::cout<< '{' <<(int) action.com << ',' <<(int) action.obj << ',' <<(int) action.err <<'}' //  Debug line. Remove later.
-        ;std::cout<<'>'
+        ;std::cout<<'>'<<std::flush
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
     ;}

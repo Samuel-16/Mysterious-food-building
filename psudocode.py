@@ -2,20 +2,29 @@ from time import sleep
 from random import random as ran
 
 #Item enum
-WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH,LEVER=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768
-item_enum={1:"wood sword",2:"apple",4:"Apples",8:"health potion",16:"Health Potionx2",32:"chair",64:"staircase",128:"knife",256:"resturant",512:"bone",1024:"rusted sword",2048:"normal sword",4096:"steel sword",8192:"coin",16384:"brush",32768:"lever"}
+WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTAURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH,LEVER=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768
+item_enum={1:"wood sword",2:"apple",4:"Apples",8:"health potion",16:"Health Potionx2",32:"chair",64:"staircase",128:"knife",256:"restaurant",512:"bone",1024:"rusted sword",2048:"normal sword",4096:"steel sword",8192:"coin",16384:"brush",32768:"lever"}
+jp_item_enum={1:"林の刀",2:"りんご",4:"Apples",8:"治癒薬",16:"Health Potionx2",32:"椅子",64:"階段",128:"包丁",256:"食堂",512:"骨",1024:"錆びた剣",2048:"普通の剣",4096:"鋼の剣",8192:"硬貨",16384:"刷子",32768:"レバー"}
+jp_item_enum_2={1:"林の剣",2:"林檎",4:"Apples",8:"体力ポーシ",16:"Health Potionx2",32:"チェア",64:"段々",128:"ナイフ",256:"レストラン",512:"ボーン",1024:"錆びた刀",2048:"普通の刀",4096:"鋼の刀",8192:"コイン",16384:"ブラシ",32768:"てこ"}
 #npc enum
 MAID,GUARD,VISCOUNT,ORC,CHEF,HUMAN,TREE,FAMILY_MEMBER=1,2,4,8,16,32,64,128
 npc_enum={1:"maid",2:"guard",4:"viscount",8:"orc",16:"chef",32:"human",64:"tree",128:"family member"}
+jp_npc_enum={1:"メイド",2:"守衛",4:"子爵",8:"鬼",16:"コック",32:"人間",64:"木",128:"家の人"}
 #npc/item enum
 NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
-full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())
+full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())+\
+tuple(jp_npc_enum.values())+("北","東","南","西","上","下","左","右")+tuple(jp_item_enum.values())+tuple(jp_item_enum_2.values())
 #Type enum
 ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE=0,1,2,3,4,5,6,7
 type_enum=("room","clearing","corridor","prison","bedroom","courtroom","forest","village")
+jp_type_enum=("部屋","開墾","廊下","刑務所","寝室","公判廷","森","村")
 #Action enum
 GO,GET,DROP,FIGHT,MEET,EAT,SWING,QUIT,RESET,HELP=0,1,2,3,4,5,6,7,8,9
-command_enum=("GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP")
+command_enum=("GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP",\
+           "VISIT","LIFT","THROW","HIT",  "CHECK", "SWALL","USE",  "EXIT", "RESTA", "HINT",\
+              "行","取",   "落",   "戦",     "合",   "食",   "振",    "辞",   "リ",    "助",\
+              "訪","拾",   "投",   "当",     "見",   "飲",   "使",    "出",   "再",    "仄",\
+"SAVE","セーブ")
 
 class parse_result():
   obj=-1
@@ -32,9 +41,10 @@ class Location():
   type_=0
   npcs=0
   items=0
-  discription=""
+  description=""
+  jp_description=""
   
-  def __init__(s,north=0,east=0,west=0,south=0,up=0,down=0,items=0,type_=0,npcs=0,discription=""):
+  def __init__(s,north=0,east=0,west=0,south=0,up=0,down=0,items=0,type_=0,npcs=0,description="",jp_description=""):
     s.north=int(north)
     s.east=int(east)
     s.west=int(west)
@@ -44,7 +54,8 @@ class Location():
     s.items=int(items)
     s.type_=int(type_)
     s.npcs=int(npcs)
-    s.discription=str(discription)
+    s.description=str(description)
+    s.jp_description=str(jp_description)
 
 class Npc():
   inventory=0
@@ -62,18 +73,18 @@ eaten_npcs=0
 
 locs=[
   None,
-  Location(type_=ROOM,south=4,west=6,discription=\
+  Location(type_=ROOM,south=4,west=6,description=\
     """It's a conservatory.
 There is a nice view of the lanscape and forest."""),
-  Location(type_=CLEARING,east=4,north=6,discription=\
+  Location(type_=CLEARING,east=4,north=6,description=\
     """It's surrounded by a wooden fence."""),
-  Location(type_=CORRIDOR,west=4,east=5,npcs=MAID,discription=\
+  Location(type_=CORRIDOR,west=4,east=5,npcs=MAID,description=\
     """It's a dark, moist, stone corridor."""),
-  Location(items=WOOD_SWORD+ROOM,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,discription=\
+  Location(items=WOOD_SWORD+ROOM,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,description=\
     """It's a small wodden room."""),
-  Location(type_=ROOM,west=3,npcs=GUARD,discription=\
+  Location(type_=ROOM,west=3,npcs=GUARD,description=\
     """It's a stone, prison-like room."""),
-  Location(type_=CLEARING,east=1,south=2,discription=\
+  Location(type_=CLEARING,east=1,south=2,description=\
     """You stand on a patch of grass on a tiny hill in an open area.
 The breeze feels nice."""),
 ]
@@ -106,6 +117,8 @@ def parse(inp_str) -> parse_result:
   out.err=1
   
   objs=list(full_enum) # Coppying the array may require multiple commands
+  i=i if out.com<20 else 0
+  out.com=(out.com%10)if out.com<40 else 10
   
   while i < len(inp_str):
     # <Return if null-turminator will go here>
@@ -116,6 +129,8 @@ def parse(inp_str) -> parse_result:
     if out.obj!=-1:break
   if i>=len(inp_str) and out.obj==-1:return out # Line might be removed in other implementations.
   out.err=0
+
+  out.obj=(out.obj-16 if out.obj>=64 else out.obj)%32
   return out
 
 def do_action(action:parse_result):
@@ -164,7 +179,7 @@ def do_action(action:parse_result):
           print("%s is an invalid direction." % obj_name)
           return
       print("You are in a %s." % type_enum[locs[loc].type_])
-      print(locs[loc].discription)
+      print(locs[loc].description)
       return
     case 1:#GET
       if action.obj<16:
@@ -193,10 +208,10 @@ def do_action(action:parse_result):
         return
       location.items=location.items ^ item_bit
       inventory=inventory ^ item_bit
-      print("You picked up the %s" % obj_name)
+      print("The %s landed on the floor." % obj_name)
     case 3:#FIGHT
       if action.obj>=8:
-        print("No %s to fight." % obj_name)
+        print("Can't fight %s." % obj_name)
         return
       #TODO Implement fighting.
     case 4:#MEET
@@ -264,7 +279,7 @@ if __name__=="__main__":
 
   type_str=type_enum[locs[loc].type_] # Maybe this would be `char *type_str=type_enum[locs[loc].type];`?
   print("You are in a %s" % type_str)
-  print(locs[loc].discription)
+  print(locs[loc].description)
   command=input("What will you do? >")
   action=parse(command)
   while action.com!=QUIT:
