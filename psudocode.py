@@ -15,9 +15,9 @@ NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
 full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())+\
 tuple(jp_npc_enum.values())+("北","東","南","西","上","下","左","右")+tuple(jp_item_enum.values())+tuple(jp_item_enum_2.values())
 #Type enum
-ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE=0,1,2,3,4,5,6,7
-type_enum=("room","clearing","corridor","prison","bedroom","courtroom","forest","village")
-jp_type_enum=("部屋","開墾","廊下","刑務所","寝室","公判廷","森","村")
+ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE,BASEMENT,TREASURY,DINETTE,ART_ROOM,CAVE,HALL=0,1,2,3,4,5,6,7,8,9,10,11,12,13
+type_enum=("room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall")
+jp_type_enum=("部屋","開墾",   "廊下",    "刑務所", "寝室",    "公判廷",    "森",    "村",      "地下室",   "金庫",    "食堂",    "美術室",   "空洞", "会館")
 #Action enum
 GO,GET,DROP,FIGHT,MEET,EAT,SWING,QUIT,RESET,HELP=0,1,2,3,4,5,6,7,8,9
 command_enum=("GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP",\
@@ -67,26 +67,76 @@ class Npc():
     s.avo=float(avo)
 
 loc=4
-inventory=3
+inventory=HEALTH_POTION
 eaten_items=0
 eaten_npcs=0
 
 locs=[
   None,
-  Location(type_=ROOM,south=4,west=6,description=\
+  Location(type_=ROOM,items=CHAIR,south=4,west=6,description=\
     """It's a conservatory.
-There is a nice view of the lanscape and forest."""),
-  Location(type_=CLEARING,east=4,north=6,description=\
-    """It's surrounded by a wooden fence."""),
+There is a nice view of the landscape and forest."""), # 1
+  Location(type_=CLEARING,items=APPLE,east=4,north=6,npcs=TREE,description=\
+    """It's surrounded by a wooden fence."""), # 2
   Location(type_=CORRIDOR,west=4,east=5,npcs=MAID,description=\
-    """It's a dark, moist, stone corridor."""),
-  Location(items=WOOD_SWORD+ROOM,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,description=\
-    """It's a small wodden room."""),
-  Location(type_=ROOM,west=3,npcs=GUARD,description=\
-    """It's a stone, prison-like room."""),
-  Location(type_=CLEARING,east=1,south=2,description=\
+    """It's a dark, moist, stone corridor."""), # 3
+  Location(items=WOOD_SWORD,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,description=\
+    """It's a small wooden room."""), # 4
+  Location(type_=ROOM,items=STAIRCASE+KNIFE+COIN,west=3,npcs=GUARD,description=\
+    """It's a stone, prison-like room."""), # 5
+  Location(type_=CLEARING,items=APPLE,east=1,south=2,description=\
     """You stand on a patch of grass on a tiny hill in an open area.
-The breeze feels nice."""),
+The breeze feels nice."""), # 6
+  Location(type_=BASEMENT,up=4,east=8,description=\
+    """Sunlight creeps through between the floorboards above.
+The stone floor seems to creak, and the sound of dripping water echoes from the east."""), # 7
+  Location(type_=ROOM,west=7,npcs=ORC,description=\
+    """The room feels oppressive."""), # 8
+  Location(type_=CAVE,items=RUSTED_SWORD,north=8,west=10,description=\
+    """Stone surrounds you."""), # 9
+  Location(type_=FOREST,north=2,east=9,description=\
+    """You stand at the entrance to a cave.
+The cave is concealed in a lush forest.
+If you were to leave, you don't think you could find your way back here easily through the forest."""), # 10
+  Location(type_=TREASURY,west=8,items=HEALTH_POTION+NORMAL_SWORD+CHAIR,description=\
+    """Much of the room is foul.
+There is a seemingly blocked toilet in the corner.
+The rest of the place is lavish with plenty of tools that you can't identify."""), # 11
+  Location(type_=PRISON,south=8,east=13,npcs=HUMAN,description=\
+    """There are chains and bars."""), # 12
+  Location(type_=HALL,npcs=CHEF,items=RESTAURANT+LEVER,description=\
+    """The tension is high in this grand hall.
+The torches on either wall crackle; adding to the atmosphere.
+The entrance to the room is gone."""), # 13
+  Location(type_=ROOM,south=15,east=20,down=13,description=\
+    """A dusty, dilapidated wooden room.
+There is a hole in both the ceiling and the floor."""), # 14
+  Location(type_=HALL,north=14,west=16,east=21,description=\
+    """A small, yet clearly well used meeting hall."""), # 15
+  Location(type_=TREASURY,items=STEEL_SWORD,east=15,up=17,description=\
+    """A soft amber glow barely illuminates the room.
+There's stuff here that you can't see, let alone identify."""), # 16
+  Location(type_=ART_ROOM,north=18,south=19,down=16,description=\
+    """Stacks of both old and recently painted paintings sit in a well lit room."""), # 17
+  Location(type_=COURTROOM,npcs=VISCOUNT,south=17,east=14,description=\
+    """Soft sunlight shines into this grand courtroom."""), # 18
+  Location(type_=ROOM,north=17,down=24,description=\
+    """The room seems intended for fast access to the bedroom below."""), # 19
+  Location(type_=BEDROOM,west=14,south=21,description=\
+    """Light shines through a window onto a four poster bed."""), # 20
+  Location(type_=DINETTE,north=20,south=22,description=\
+    """A grand dining room.
+There is an entrance from the west; covered by some kind of banner, which is too high to reach."""), # 21
+  Location(type_=ROOM,items=HEALTH_POTION,north=21,west=23,description=\
+    """It's a small storage room."""), # 22
+  Location(type_=CORRIDOR,east=22,west=24,description=\
+    """Light shines into this long corridor from the south."""), # 23
+  Location(type_=BEDROOM,east=23,west=25,description=\
+    """It's a lavish bedroom with an en suite to the south."""), # 24
+  Location(type_=HALL,east=24,north=26,description=\
+    """An inviting hall, clearly intended to welcome guests into this place which you now suspect to be some kind of manor."""), # 25
+  Location(type_=ART_ROOM,items=LEVER,south=25,description=\
+    """The room seems well used as an exit, but dusty paintings hang on dusty walls."""), # 26
 ]
 
 def check_can_hold_multiple(arr:int):
