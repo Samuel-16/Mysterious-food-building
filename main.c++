@@ -21,7 +21,7 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     CHAIR=1<<             5,
     STAIRCASE=1<<         6,
     KNIFE=1<<             7,
-    RESTURANT=1<<         8,
+    RESTAURANT=1<<         8,
     BONE=1<<              9,
     RUSTED_SWORD=1<<      10,
     NORMAL_SWORD=1<<      11,
@@ -77,12 +77,18 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     BEDROOM,
     COURTROOM,
     FOREST,
-    VILLAGE
+    VILLAGE,
+    BASEMENT,
+    TREASURY,
+    DINETTE,
+    ART_ROOM,
+    CAVE,
+    HALL
 }
 
-;const char type_enum[16][10]=
-{"room","clearing","corridor","prison","bedroom","courtroom","forest","village",
-"部屋","開墾","廊下","刑務所","寝室","公判廷","森","村"}
+;const char type_enum[28][11]=
+{"room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall"
+ "部屋", "開墾",     "廊下",    "刑務所", "寝室",    "公判廷",    "森",    "村",      "地下室",   "金庫",    "食堂",    "美術室",   "空洞", "会館"}
 
 // Ennumerations for player commands.
 ;enum Action{
@@ -138,20 +144,70 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 ;byte eaten_npcs=0
 
 ;Location locs[]={{0},
-  {.type=ROOM,.south=4,.west=6,.description=
+  {.type=ROOM,.south=4,.west=6,.items=CHAIR,.description=
     R"(It's a conservatory.
 There is a nice view of the lanscape and forest.)"},
-  {.type=CLEARING,.north=6,.east=4,.description=
+  {.type=CLEARING,.north=6,.east=4,.npcs=TREE,.description=
     R"(It's surrounded by a wooden fence.)"},
   {.type=CORRIDOR,.east=5,.west=4,.npcs=MAID,.description=
     R"(It's a dark, moist, stone corridor.)"},
-  {.type=ROOM,.north=1,.east=3,.west=2,.items=WOOD_SWORD+ROOM,.description=
+  {.type=ROOM,.north=1,.east=3,.west=2,.items=WOOD_SWORD,.description=
     R"(It's a small wodden room.)"},
-  {.type=ROOM,.west=3,.npcs=GUARD,.description=
+  {.type=ROOM,.west=3,.npcs=GUARD,.items=STAIRCASE+KNIFE+COIN,.description=
     R"(It's a stone, prison-like room.)"},
   {.type=CLEARING,.east=1,.south=2,.description=
     R"(You stand on a patch of grass on a tiny hill in an open area.
-The breeze feels nice.)"}}
+The breeze feels nice.)"},
+  {.type=BASEMENT,.east=8,.up=4,.description=
+    R"(Sunlight creeps through between the floorboards above.
+The stone floor seems to creak, and the sound of dripping water echoes from the east.)"},
+  {.type=ROOM,.west=7,.npcs=ORC,.description=
+    R"(The room feels oppressive.)"},
+  {.type=CAVE,.north=8,.west=10,.items=RUSTED_SWORD,.description=
+    R"(Stone surrounds you.)"},
+  {.type=FOREST,.north=2,.east=9,.description=
+    R"(You stand at the entrance to a cave.
+The cave is concealed in a lush forest.
+If you were to leave, you don't think you could find your way back here easily through the forest.)"},
+  {.type=TREASURY,.west=8,.items=HEALTH_POTION+NORMAL_SWORD+CHAIR,.description=
+    R"(Much of the room is foul.
+There is a seemingly blocked toilet in the corner.
+The rest of the place is lavish with plenty of tools that you can't identify.)"},
+  {.type=PRISON,.east=13,.south=8,.npcs=HUMAN,.description=
+    R"(There are chains and bars.)"},
+  {.type=HALL,.npcs=CHEF,.items=RESTAURANT+LEVER,.description=
+    R"(The tension is high in this grand hall.
+The torches on either wall crackle; adding to the atmosphere.
+The entrance to the room is gone.)"},
+  {.type=ROOM,.east=20,.south=15,.down=13,.description=
+    R"(A dusty, dilapidated wooden room.
+There is a hole in both the ceiling and the floor.)"},
+  {.type=HALL,.north=14,.east=21,.west=16,.description=
+    R"(A small, yet clearly well used meeting hall.)"},
+  {.type=TREASURY,.east=15,.up=17,.items=STEEL_SWORD,.description=
+    R"(A soft amber glow barely illuminates the room.
+There's stuff here that you can't see, let alone identify.)"},
+  {.type=ART_ROOM,.north=18,.south=19,.down=16,.description=
+    R"(Stacks of both old and recently painted paintings sit in a well lit room.)"},
+  {.type=COURTROOM,.east=14,.south=17,.npcs=VISCOUNT,.description=
+    R"(Soft sunlight shines into this grand courtroom.)"},
+  {.type=ROOM,.north=17,.down=24,.description=
+    R"(The room seems intended for fast access to the bedroom below.)"},
+  {.type=BEDROOM,.south=21,.west=14,.description=
+    R"(Light shines through a window onto a four poster bed.)"},
+  {.type=DINETTE,.north=20,.south=22,.description=
+    R"(A grand dining room.
+There is an entrance from the west; covered by some kind of banner, which is too high to reach.)"},
+  {.type=ROOM,.north=21,.west=23,.items=HEALTH_POTION,.description=
+    R"(It's a small storage room.)"},
+  {.type=CORRIDOR,.east=22,.west=24,.description=
+    R"(Light shines into this long corridor from the south.)"},
+  {.type=BEDROOM,.east=23,.west=25,.description=
+    R"(It's a lavish bedroom with an en suite to the south.)"},
+  {.type=HALL,.north=26,.east=24,.description=
+    R"(An inviting hall, clearly intended to welcome guests into this place which you now suspect to be some kind of manor.)"},
+  {.type=ART_ROOM,.south=25,.items=LEVER,.description=
+    R"(The room seems well used as an exit, but dusty paintings hang on dusty walls.)"}}
 
 ;std::int_least8_t parse_com_check(const char** arr,int arr_size){
     for (byte i=0;i<arr_size;i++){
@@ -185,7 +241,7 @@ The breeze feels nice.)"}}
         out.com=parse_com_check(commands,command_enum_length);
         if (out.com!=-1){break;}
     }
-    if (i>=inp_str.length() && out.obj==-1){return out;} // If the while-loop didn't break, return with the error value left at 2.
+    if (i>=inp_str.length() && out.com==-1){return out;} // If the while-loop didn't break, return with the error value left at 2.
     ;out.err=1 // Reduce the error value from 2 to 1, to show that the first step completed successfuly.
 
     ;const byte full_enum_length=sizeof(full_enum)/sizeof(full_enum[0])
