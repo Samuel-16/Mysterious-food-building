@@ -5,10 +5,11 @@
 #include <cstdlib> // For random number generation.
 #include <cctype> // For upper/lower case conversion.
 #include <cstdint> // For better practice int types.
+#include <cassert> // To alert if any program states intended to be impossible are reached.
 
 // Set datatype names. to avoid needing to type longer names repeatedly.
-using byte=std::uint8_t;      // A byte will be a one byte positive integer
-using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
+using byte=std::uint8_t;  // A byte will be a one byte positive integer
+using word=std::uint16_t; // A word will be a two byte positive integer.
 
 // Ennumerate by powers of two.
 // Obtainable items.
@@ -21,7 +22,7 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     CHAIR=1<<             5,
     STAIRCASE=1<<         6,
     KNIFE=1<<             7,
-    RESTAURANT=1<<         8,
+    RESTAURANT=1<<        8,
     BONE=1<<              9,
     RUSTED_SWORD=1<<      10,
     NORMAL_SWORD=1<<      11,
@@ -66,6 +67,11 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 "食堂", "骨", "錆びた剣", "普通の剣", "鋼の剣", "硬貨", "刷子", "レバー",
 "林の剣", "林檎", "Apples", "体力ポーシ", "Health Potionx2", "チェア", "段々", "ナイフ",
 "レストラン", "ボーン", "錆びた刀", "普通の刀", "鋼の刀", "コイン", "ブラシ", "てこ",}
+;const char hp_enum[]={
+48,6,12,4,40,52,-48,2,
+0,0,0,0,0,0,0,0,
+-64,3,0,12,0,1,0,-64,0,-2,-96,-128,0,0,-1,0}
+//;const char eat_text[64][4][128]
 
 // Ennumerations for types of rooms.
 // Automatic ennumeration as increments of 1.
@@ -89,6 +95,7 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
 ;const char type_enum[28][11]=
 {"room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall"
  "部屋", "開墾",     "廊下",    "刑務所", "寝室",    "公判廷",    "森",    "村",      "地下室",   "金庫",    "食堂",    "美術室",   "空洞", "会館"}
+#define type_enum_size ((sizeof(type_enum)/sizeof(type_enum[0]))/2)
 
 // Ennumerations for player commands.
 ;enum Action{
@@ -127,27 +134,32 @@ using bytebyte=std::uint16_t; // A bytebyte will be a two byte positive integer.
     byte up=0;
     byte down=0;
     byte npcs=0;
-    bytebyte items=0;
+    word items=0;
     std::string description="MISSING DESCRIPTION";
     std::string jp_description="エラー: 説明がありません";
 }
 
 ;struct Npc{
-    bytebyte inventory=0;
-    byte hp=4;
+    word inventory=0;
+    word hp=4;
     float avo=0.05;
 }
 
 ;byte loc=4
-;bytebyte inventory=3
-;bytebyte eaten_items=0
-;byte eaten_npcs=0
+;word inventory=HEALTH_POTION
+;signed int player_hp=12
+;word eaten_items=0
+;word eaten_npcs=0
+
+#define item_uint2(n,loc) (((n)>>(loc))%4) // Isolate 2 adjacent bits as a single integer.
+#define npc_uint2(n,loc) (((((n)%256)&(1<<(loc)))?1:0)|((((n)>>8)&(1<<(loc)))?2:0)) // Isolate a bit in two adjacent bytes to make a 2-bit integer.
+#define check_can_hold_multiple(arr) ((arr)&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS)) // Check if an item can be stacked.
 
 ;Location locs[]={{0},
   {.type=ROOM,.south=4,.west=6,.items=CHAIR,.description=
     R"(It's a conservatory.
 There is a nice view of the lanscape and forest.)"},
-  {.type=CLEARING,.north=6,.east=4,.npcs=TREE,.description=
+  {.type=CLEARING,.north=6,.east=4,.npcs=TREE,.items=APPLE,.description=
     R"(It's surrounded by a wooden fence.)"},
   {.type=CORRIDOR,.east=5,.west=4,.npcs=MAID,.description=
     R"(It's a dark, moist, stone corridor.)"},
@@ -155,17 +167,17 @@ There is a nice view of the lanscape and forest.)"},
     R"(It's a small wodden room.)"},
   {.type=ROOM,.west=3,.npcs=GUARD,.items=STAIRCASE+KNIFE+COIN,.description=
     R"(It's a stone, prison-like room.)"},
-  {.type=CLEARING,.east=1,.south=2,.description=
+  {.type=CLEARING,.east=1,.south=2,.items=APPLE,.description=
     R"(You stand on a patch of grass on a tiny hill in an open area.
 The breeze feels nice.)"},
   {.type=BASEMENT,.east=8,.up=4,.description=
     R"(Sunlight creeps through between the floorboards above.
 The stone floor seems to creak, and the sound of dripping water echoes from the east.)"},
-  {.type=ROOM,.west=7,.npcs=ORC,.description=
+  {.type=ROOM,.south=9,.west=7,.npcs=ORC,.description=
     R"(The room feels oppressive.)"},
   {.type=CAVE,.north=8,.west=10,.items=RUSTED_SWORD,.description=
     R"(Stone surrounds you.)"},
-  {.type=FOREST,.north=2,.east=9,.description=
+  {.type=FOREST,.north=2,.east=9,.items=APPLES,.description=
     R"(You stand at the entrance to a cave.
 The cave is concealed in a lush forest.
 If you were to leave, you don't think you could find your way back here easily through the forest.)"},
@@ -249,10 +261,9 @@ There is an entrance from the west; covered by some kind of banner, which is too
     ;out.com=out.com<40 ?(out.com%10): 10
     
     ;const char* objs[full_enum_length] // Mutable vaiable pointing to constant data.
-    ;for (byte i=0;i<full_enum_length;i++) // Set the values in the objs array.
-       {objs[i]=*full_enum+i*sizeof(full_enum[0]);} // Values are pointers to constant chars declared in global scope.
+    ;for (byte j=0;j<full_enum_length;j++) // Set the values in the objs array.
+       {objs[j]=*full_enum+j*sizeof(full_enum[0]);} // Values are pointers to constant chars declared in global scope.
 
-    ;i=0
     ;while (i < inp_str.length()){
         for (byte j=0;j<full_enum_length;j++){
             if (*objs[j]!='\0' && (using_non_ascii?inp_str[i]:std::tolower(inp_str[i]))==*objs[j]) {objs[j]++;}}
@@ -267,9 +278,45 @@ There is an entrance from the west; covered by some kind of banner, which is too
     ;return out
 ;}
 
+void describe(Location location){
+  std::cout 
+  << "You are in a " << type_enum[locs[loc].type] << ".\n"
+  << locs[loc].description << '\n';
+  if (location.items & ~LEVER){
+    std::cout << "\nOn the floor, there is:\n";
+    for (int i=0;i<15;i++)
+      if (location.items & 1<<i)std::cout
+      << "-"
+      << full_enum[16+i]
+      << '\n';}
+  if (location.north>0)
+    std::cout << "NORTH: ->"
+    << type_enum[locs[location.north].type]
+    << '\n';
+  if (location.east>0)
+    std::cout << "EAST: ->"
+    << type_enum[locs[location.east].type]
+    << '\n';
+  if (location.south>0)
+    std::cout << "SOUTH: ->"
+    << type_enum[locs[location.south].type]
+    << '\n';
+  if (location.west>0)
+    std::cout << "WEST: ->"
+    << type_enum[locs[location.west].type]
+    << '\n';
+  if (location.up>0)
+    std::cout << "UP: ->"
+    << type_enum[locs[location.up].type]
+    << '\n';
+  if (location.down>0)
+    std::cout << "DOWN: ->"
+    << type_enum[locs[location.down].type]
+    << '\n';}
+
 ;void do_action(parse_result action){
     ;Location &location=locs[loc]
-    ;bytebyte item_bit // In event of undefined behaviour; initialise at zero.
+    ;word item_bit // In event of undefined behaviour; initialise at zero.
     ;if(action.err==2){
         std::cout<<"Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n";
         return;}
@@ -279,6 +326,7 @@ There is an entrance from the west; covered by some kind of banner, which is too
         return;}
 
     ;const char* obj_name=full_enum[action.obj]
+    ;bool multi_item
     ;switch(action.com){
         case GO:
           switch(action.obj){
@@ -328,23 +376,35 @@ There is an entrance from the west; covered by some kind of banner, which is too
               std::cout<<obj_name<<" is an invalid direction.\n";
               return;
           }
-          std::cout
-          << "You are in a " << type_enum[locs[loc].type] << ".\n"
-          << locs[loc].description << '\n'
+          ;describe(locs[loc])
           ;break;
         case GET:
           if(action.obj<16){
             std::cout<<obj_name<<" is not an item.\n";
             return;}
           ;item_bit=1<<(action.obj-16)
-          ;if ((item_bit & location.items)==0){
+          ;multi_item=check_can_hold_multiple(item_bit)
+          ;if (((item_bit | (multi_item? item_bit<<1:0)) & location.items)==0){
             std::cout<<"There is no "<<obj_name<<" on the ground.\n";
             return;}
-          ;if(item_bit & inventory){
+          if (multi_item){
+            if (item_uint2(inventory,action.obj-16)==3){
+              std::cout<<"Too many "<<obj_name<<"s are already in your inventory.";
+              return;
+            }}
+          else{if(item_bit & inventory){
             std::cout<<obj_name<<" is already in your inventory.\n";
-            return;}
+            return;}}
           ;location.items=location.items ^ item_bit
+          ;if(location.items&item_bit){
+            location.items=location.items ^ (item_bit<<1);
+            assert(multi_item);
+            assert(item_uint2(location.items,action.obj-16)==1);}
           ;inventory=inventory ^ item_bit
+          ;if ((inventory&item_bit)==0){
+            inventory=inventory ^ (item_bit<<1);
+            assert(multi_item);
+            assert(item_uint2(inventory,action.obj-16)==2);}
           ;std::cout<<"You picked up the "<<obj_name<<".\n"
           ;break;
         case DROP:
@@ -352,14 +412,34 @@ There is an entrance from the west; covered by some kind of banner, which is too
             std::cout<<obj_name<<" is not an item.\n";
             return;}
           ;item_bit=1<<(action.obj-16)
-          ;if (item_bit & location.items){
-            std::cout<<obj_name<<" is already on the floor.\n";
-            return;}
-          ;if((item_bit & inventory)==0){
+          ;multi_item=check_can_hold_multiple(item_bit)
+          ;if(multi_item){
+            if(item_uint2(location.items,action.obj-16)==3){
+              std::cout<<"The floor seems full...\n";
+              return;}}
+          else{
+            if (item_bit & location.items){
+              std::cout<<obj_name<<" is already on the floor.\n";
+              return;}}
+          if(((item_bit | (multi_item? item_bit<<1:0)) & inventory)==0){
             std::cout<<"You don't have any "<<obj_name<<".\n";
             return;}
+          if(loc==4 && (item_bit & STAIRCASE)){
+            ;inventory=inventory ^ item_bit
+            ;locs[4].down=7
+            ;std::cout
+            << "The staircase fell through the floor.\n"
+            ;return;}
           ;location.items=location.items ^ item_bit
+          ;if((location.items&item_bit)==0){
+            location.items=location.items ^ (item_bit<<1);
+            assert(multi_item);
+            assert(item_uint2(location.items,action.obj-16)==2);}
           ;inventory=inventory ^ item_bit
+          ;if(inventory&item_bit){
+            inventory=inventory ^ (item_bit<<1);
+            assert(multi_item);
+            assert(item_uint2(inventory,action.obj-16)==1);}
           ;std::cout<<"The "<<obj_name<<" landed on the floor.\n"
           ;break;
         case FIGHT:
@@ -423,16 +503,31 @@ There is an entrance from the west; covered by some kind of banner, which is too
               return;}
             if((location.npcs & item_bit)==0){
               std::cout<<"The "<<obj_name<<" is not in this room.\n";
-              return;}}
+              return;}
+            player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj);
+            eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8));}
           else if(action.obj<16){
             std::cout<<"Ya can't eat a direction...\n";
             return;}
           else{
             item_bit=1<<(action.obj-16);
-            if (((location.items|inventory) & item_bit)==0){
+            if (((location.items|inventory) & (item_bit| (check_can_hold_multiple(item_bit)? item_bit<<1:0)))==0){
               std::cout<<"There is no "<<obj_name<<".\n";
-              return;
-            }}
+              return;}
+            bool on_floor=(location.items & item_bit)||(check_can_hold_multiple(item_bit)&&item_uint2(location.items,action.obj-16));
+            if(player_hp+hp_enum[action.obj]<=(64>=player_hp?64:player_hp))player_hp+=hp_enum[action.obj];
+            else if(player_hp<64)player_hp=64;
+            if((not check_can_hold_multiple(item_bit))||(item_uint2(on_floor? location.items:inventory,action.obj-16)%2)){
+              if(on_floor){location.items=location.items^item_bit;}
+              else{inventory=inventory^item_bit;}}
+            else{
+              if(on_floor){
+                location.items=location.items^(item_bit | item_bit<<1);
+                assert(!(location.items & (item_bit<<1)));}
+              else{
+                inventory=inventory^(item_bit | item_bit<<1);
+                assert(!(inventory & (item_bit<<1)));}}
+            }
           // Then resolve what happens when the object is eaten.
           //TODO implement
           break;
@@ -453,9 +548,8 @@ There is an entrance from the west; covered by some kind of banner, which is too
 ;int main() {
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
     << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
-    << "You are in a " << type_enum[locs[loc].type] << ".\n"
-    << locs[loc].description << '\n'
-    << "What will you do? >"
+    ;describe(locs[loc])
+    ;std::cout << "What will you do? >"
     ;char input_buffer[256]
     ;std::cin.getline(input_buffer,255)
     
@@ -463,7 +557,7 @@ There is an entrance from the west; covered by some kind of banner, which is too
     ;while (action.com!=QUIT){
         ;do_action(action)
         ;std::cout<< '{' <<(int) action.com << ',' <<(int) action.obj << ',' <<(int) action.err <<'}' //  Debug line. Remove later.
-        ;std::cout<<'>'<<std::flush
+        ;std::cout<<"HP: "<<player_hp<<"/64 >"<<std::flush
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
     ;}

@@ -14,6 +14,9 @@ jp_npc_enum={1:"メイド",2:"守衛",4:"子爵",8:"鬼",16:"コック",32:"人�
 NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
 full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())+\
 tuple(jp_npc_enum.values())+("北","東","南","西","上","下","左","右")+tuple(jp_item_enum.values())+tuple(jp_item_enum_2.values())
+hp_enum=(48,6,12,4,40,52,-48,2)+(0,)*8+(\
+-64,3,0,12,0,1,0,-64,0,-2,-96,-128,0,0,-1,0)
+
 #Type enum
 ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE,BASEMENT,TREASURY,DINETTE,ART_ROOM,CAVE,HALL=0,1,2,3,4,5,6,7,8,9,10,11,12,13
 type_enum=("room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall")
@@ -68,8 +71,12 @@ class Npc():
 
 loc=4
 inventory=HEALTH_POTION
+player_hp=12
 eaten_items=0
 eaten_npcs=0
+
+item_uint2 = lambda n,loc: (((n)>>(loc))%4)
+npc_uint2 = lambda n,loc: (1 if bool(((n)%256)&(1<<loc))else 0)+(2 if bool(((n)>>8)&(1<<loc))else 0)
 
 locs=[
   None,
@@ -90,11 +97,11 @@ The breeze feels nice."""), # 6
   Location(type_=BASEMENT,up=4,east=8,description=\
     """Sunlight creeps through between the floorboards above.
 The stone floor seems to creak, and the sound of dripping water echoes from the east."""), # 7
-  Location(type_=ROOM,west=7,npcs=ORC,description=\
+  Location(type_=ROOM,south=9,west=7,npcs=ORC,description=\
     """The room feels oppressive."""), # 8
   Location(type_=CAVE,items=RUSTED_SWORD,north=8,west=10,description=\
     """Stone surrounds you."""), # 9
-  Location(type_=FOREST,north=2,east=9,description=\
+  Location(type_=FOREST,north=2,east=9,items=APPLES,description=\
     """You stand at the entrance to a cave.
 The cave is concealed in a lush forest.
 If you were to leave, you don't think you could find your way back here easily through the forest."""), # 10
@@ -163,7 +170,7 @@ def parse(inp_str) -> parse_result:
     i+=1
     out.com=parse_com_check(commands)
     if out.com!=-1:break
-  if i>=len(inp_str):return out # Line might be removed in other implementations.
+  if i>=len(inp_str) and  out.com==-1:return out # Line might be removed in other implementations.
   out.err=1
   
   objs=list(full_enum) # Coppying the array may require multiple commands
@@ -183,10 +190,31 @@ def parse(inp_str) -> parse_result:
   out.obj=(out.obj-16 if out.obj>=64 else out.obj)%32
   return out
 
+def describe(location:Location):
+  print("You are in a %s." % type_enum[locs[loc].type_])
+  print(location.description)
+  if location.items & ~LEVER!=0:
+    print("On the floor, there is:")
+    for i in range(15):
+      if location.items & 1<<i:print("-",full_enum[16+i])
+  if location.north>0:
+    print("NORTH:",type_enum[location.type_],"->",type_enum[locs[location.north].type_])
+  if location.east>0:
+    print("EAST:",type_enum[location.type_],"->",type_enum[locs[location.east].type_])
+  if location.south>0:
+    print("SOUTH:",type_enum[location.type_],"->",type_enum[locs[location.south].type_])
+  if location.west>0:
+    print("WEST:",type_enum[location.type_],"->",type_enum[locs[location.west].type_])
+  if location.up>0:
+    print("UP:",type_enum[location.type_],"->",type_enum[locs[location.up].type_])
+  if location.down>0:
+    print("DOWN:",type_enum[location.type_],"->",type_enum[locs[location.down].type_])
+
 def do_action(action:parse_result):
   global loc
   global inventory
   global eaten_npcs
+  global player_hp
   location=locs[loc]
   print(action.com,action.obj,action.err) # Debug line. Remove later.
   if action.err==2:
@@ -225,39 +253,83 @@ def do_action(action:parse_result):
             return
           loc=location.west
           print("You went west.")
+        case 12:#UP
+          if location.up==0:
+            print("No way to go up.")
+            return
+          loc=location.up
+          print("You went up.")
+        case 13:#Down
+          if location.down==0:
+            print("No way to go down.")
+            return
+          loc=location.down
+          print("You went down.")
         case _:
           print("%s is an invalid direction." % obj_name)
           return
-      print("You are in a %s." % type_enum[locs[loc].type_])
-      print(locs[loc].description)
+      describe(locs[loc])
       return
     case 1:#GET
       if action.obj<16:
         print("%s is not an item." % obj_name)
         return
       item_bit=1<<(action.obj-16)
-      if item_bit & location.items==0:
+      multi_item=check_can_hold_multiple(item_bit)
+      if (item_bit | (item_bit<<1 if multi_item else 0)) & location.items==0:
         print("There is no %s on the ground." % obj_name)
         return
-      if bool(item_bit & inventory):
-        print("%s is already in your inventory." % obj_name)
-        return
+      if multi_item:
+        if item_uint2(inventory,action.obj-16)==3:
+          print("Too many %ss are already in your inventory." % obj_name)
+          return
+      else:
+        if bool(item_bit & inventory):
+          print("%s is already in your inventory." % obj_name)
+          return
       location.items=location.items ^ item_bit
+      if location.items&item_bit!=0:
+        location.items=location.items ^ (item_bit<<1)
+        assert(multi_item)
+        assert(item_uint2(location.items,action.obj-16)==1)
       inventory=inventory ^ item_bit
+      if inventory&item_bit==0:
+        inventory=inventory ^ (item_bit<<1)
+        assert(multi_item)
+        assert(item_uint2(inventory,action.obj-16)==2)
       print("You picked up the %s" % obj_name)
     case 2:#Drop
       if action.obj<16:
         print("%s is not an item." % obj_name)
         return
       item_bit=1<<(action.obj-16)
-      if bool(item_bit & location.items):
-        print("%s is already on the floor." % obj_name)
-        return
-      if item_bit & inventory==0:
+      multi_item=check_can_hold_multiple(item_bit)
+      if multi_item:
+        if item_uint2(location.items,action.obj-16)==3:
+          print("The floor seems full...")
+          return
+      else:
+        if bool(item_bit & location.items):
+          print("%s is already on the floor." % obj_name)
+          return
+      if (item_bit | (item_bit<<1 if multi_item else 0)) & inventory==0:
         print("You don't have any %s." % obj_name)
         return
+      if bool(item_bit & STAIRCASE)and loc==4:
+        inventory=inventory ^ item_bit
+        locs[4].down=7
+        print("The staircase fell through the floor.")
+        return
       location.items=location.items ^ item_bit
+      if location.items&item_bit==0:
+        location.items=location.items ^ (item_bit<<1)
+        assert(multi_item)
+        assert(item_uint2(location.items,action.obj-16)==2)
       inventory=inventory ^ item_bit
+      if inventory&item_bit!=0:
+        inventory=inventory ^ (item_bit<<1)
+        assert(multi_item)
+        assert(item_uint2(inventory,action.obj-16)==1)
       print("The %s landed on the floor." % obj_name)
     case 3:#FIGHT
       if action.obj>=8:
@@ -302,14 +374,29 @@ def do_action(action:parse_result):
         if location.npcs & item_bit==0:
           print("The %s is not in this room." % obj_name)
           return
+        player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
+        eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
       elif action.obj<16:
         print("Ya can't eat a direction...")
         return
       else:
         item_bit=1<<(action.obj-16)
-        if (location.items|inventory) & item_bit==0:
+        if (location.items|inventory) & (item_bit | (item_bit<<1 if check_can_hold_multiple(item_bit)else 0))==0:
           print("There is no %s." % obj_name)
           return
+        on_floor=bool(location.items & item_bit)or(check_can_hold_multiple(item_bit)and item_uint2(location.items,action.obj-16))
+        if player_hp+hp_enum[action.obj]<=max(64,player_hp):player_hp+=hp_enum[action.obj]
+        elif player_hp<64:player_hp=64
+        if (not check_can_hold_multiple(item_bit))or(item_uint2(location.items if on_floor else inventory,action.obj-16)%2):
+          if on_floor:location.items=location.items^item_bit
+          else:inventory=inventory^item_bit
+        else:
+          if on_floor:
+            location.items=location.items^(item_bit | item_bit<<1)
+            assert(not bool(location.items & (item_bit<<1)))
+          else:
+            inventory=inventory^(item_bit | item_bit<<1)
+            assert(not bool(inventory & (item_bit<<1)),("1"if bool(inventory & (item_bit<<1))else"0")+("1"if bool(inventory & (item_bit))else"0"))
       # Then resolve what happens when the object is eaten.
       #TODO implement
     case 6:#SWING
@@ -327,12 +414,10 @@ if __name__=="__main__":
   print("You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.")
   print("Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n")
 
-  type_str=type_enum[locs[loc].type_] # Maybe this would be `char *type_str=type_enum[locs[loc].type];`?
-  print("You are in a %s" % type_str)
-  print(locs[loc].description)
+  describe(locs[loc])
   command=input("What will you do? >")
   action=parse(command)
   while action.com!=QUIT:
     do_action(action)
-    command=input(">")
+    command=input("HP: "+str(player_hp)+"/64 >")
     action=parse(command)
