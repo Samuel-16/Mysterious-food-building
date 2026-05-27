@@ -1,5 +1,6 @@
 from time import sleep
 from random import random as ran
+import descript_consts
 
 #Item enum
 WOOD_SWORD,APPLE,APPLES,HEALTH_POTION,TWO_HEALTH_POTIONS,CHAIR,STAIRCASE,KNIFE,RESTAURANT,BONE,RUSTED_SWORD,NORMAL_SWORD,STEEL_SWORD,COIN,BRUSH,LEVER=1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768
@@ -64,10 +65,12 @@ class Npc():
   inventory=0
   hp=4
   avo=0.05
-  def __init__(s,inv=0,hp=4,avo=0.05):
+  desc=""
+  def __init__(s,inv=0,hp=4,avo=0.05,desc=""):
     s.inventory=int(inv)
     s.hp=int(hp)
     s.avo=float(avo)
+    s.desc=desc
 
 loc=4
 inventory=HEALTH_POTION
@@ -90,7 +93,10 @@ There is a nice view of the landscape and forest."""), # 1
   Location(items=WOOD_SWORD,north=1,west=2,east=3,south=0,up=0,down=0,type_=ROOM,npcs=0,description=\
     """It's a small wooden room."""), # 4
   Location(type_=ROOM,items=STAIRCASE+KNIFE+COIN,west=3,npcs=GUARD,description=\
-    """It's a stone, prison-like room."""), # 5
+    """It's a stone, prison-like room.
+There is an inaccessable broken door high up on the wall.
+There is a metal pole that is connected to a room above through a hole in the wall.
+You don't think you could climb the pole, but you might be able to slide down it to get back to this room from above."""), # 5
   Location(type_=CLEARING,items=APPLE,east=1,south=2,description=\
     """You stand on a patch of grass on a tiny hill in an open area.
 The breeze feels nice."""), # 6

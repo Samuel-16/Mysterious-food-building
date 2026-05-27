@@ -166,7 +166,10 @@ There is a nice view of the lanscape and forest.)"},
   {.type=ROOM,.north=1,.east=3,.west=2,.items=WOOD_SWORD,.description=
     R"(It's a small wodden room.)"},
   {.type=ROOM,.west=3,.npcs=GUARD,.items=STAIRCASE+KNIFE+COIN,.description=
-    R"(It's a stone, prison-like room.)"},
+    R"(It's a stone, prison-like room.
+There is an inaccessable broken door high up on the wall.
+There is a metal pole that is connected to a room above through a hole in the wall.
+You don't think you could climb the pole, but you might be able to slide down it to get back to this room from above.)"},
   {.type=CLEARING,.east=1,.south=2,.items=APPLE,.description=
     R"(You stand on a patch of grass on a tiny hill in an open area.
 The breeze feels nice.)"},
