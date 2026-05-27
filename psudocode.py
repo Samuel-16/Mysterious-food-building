@@ -65,12 +65,10 @@ class Npc():
   inventory=0
   hp=4
   avo=0.05
-  desc=""
-  def __init__(s,inv=0,hp=4,avo=0.05,desc=""):
+  def __init__(s,inv=0,hp=4,avo=0.05):
     s.inventory=int(inv)
     s.hp=int(hp)
     s.avo=float(avo)
-    s.desc=desc
 
 loc=4
 inventory=HEALTH_POTION
@@ -80,6 +78,17 @@ eaten_npcs=0
 
 item_uint2 = lambda n,loc: (((n)>>(loc))%4)
 npc_uint2 = lambda n,loc: (1 if bool(((n)%256)&(1<<loc))else 0)+(2 if bool(((n)>>8)&(1<<loc))else 0)
+
+npcs=[
+  Npc(inv=BRUSH), # Maid
+  Npc(inv=NORMAL_SWORD|COIN,hp=48,avo=0.125), # Guard
+  Npc(inv=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,hp=128,avo=0.25), # Viscount
+  Npc(inv=NORMAL_SWORD|HEALTH_POTION,hp=64,avo=0.0625), # Orc
+  Npc(inv=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,hp=72,avo=0.1875), # Chef
+  Npc(avo=0.25), # Human
+  Npc(inv=APPLES|APPLE,hp=24,avo=0.03125), # Tree
+  Npc() # Family Member
+]
 
 locs=[
   None,
@@ -203,6 +212,11 @@ def describe(location:Location):
     print("On the floor, there is:")
     for i in range(15):
       if location.items & 1<<i:print("-",full_enum[16+i])
+    print()
+  for i in range(8):
+    if 1<<i & location.npcs:
+      assert(npc_uint2(eaten_npcs,i)<3,"The NPC should have been removed after being eaten a third time.")
+      print(descript_consts.npc_info[i][npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)])
   if location.north>0:
     print("NORTH:",type_enum[location.type_],"->",type_enum[locs[location.north].type_])
   if location.east>0:
@@ -349,6 +363,7 @@ def do_action(action:parse_result):
         if location.npcs & item_bit==0:
           print("The %s is not in this room." % obj_name)
           return
+        print(descript_consts.npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)])
       elif action.obj<16:
         item_bit=0 # This variable will be used differently on this path.
         match action.obj:
@@ -368,8 +383,7 @@ def do_action(action:parse_result):
         if (location.items|inventory) & item_bit==0:
           print("There is no %s." % obj_name)
           return
-      # Then display info about it.
-      #TODO implement
+        print(descript_consts.item_info[action.obj-16]) # Then display info about it.
     case 5:#EAT
       # First check if it is somthing that is actually present.
       if action.obj<8:
