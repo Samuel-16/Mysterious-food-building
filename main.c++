@@ -9,7 +9,7 @@
 
 // Set datatype names. to avoid needing to type longer names repeatedly.
 using byte=std::uint8_t;  // A byte will be a one byte positive integer
-using word=std::uint16_t; // A word will be a two byte positive integer.
+using word=std::uint_least16_t; // A word will be a two byte positive integer.
 
 // Ennumerate by powers of two.
 // Obtainable items.
@@ -143,6 +143,7 @@ using word=std::uint16_t; // A word will be a two byte positive integer.
     word inventory=0;
     word hp=4;
     float avo=0.05;
+    byte threshold=4;
 }
 
 ;byte loc=4
@@ -150,10 +151,22 @@ using word=std::uint16_t; // A word will be a two byte positive integer.
 ;signed int player_hp=12
 ;word eaten_items=0
 ;word eaten_npcs=0
+;Npc* fighting=nullptr
 
 #define item_uint2(n,loc) (((n)>>(loc))%4) // Isolate 2 adjacent bits as a single integer.
 #define npc_uint2(n,loc) (((((n)%256)&(1<<(loc)))?1:0)|((((n)>>8)&(1<<(loc)))?2:0)) // Isolate a bit in two adjacent bytes to make a 2-bit integer.
 #define check_can_hold_multiple(arr) ((arr)&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS)) // Check if an item can be stacked.
+
+Npc npcs[]={
+  Npc(.inventory=BRUSH), // Maid
+  Npc(.inventory=NORMAL_SWORD|COIN,.hp=48,.avo=0.125,.threshold=1), // Guard
+  Npc(.inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,.hp=128,.avo=0.25,.threshold=0), // Viscount
+  Npc(.inventory=NORMAL_SWORD|HEALTH_POTION,.hp=64,.avo=0.0625), // Orc
+  Npc(.inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,.hp=72,.avo=0.1875,.threshold=0), // Chef
+  Npc(.avo=0.25), // Human
+  Npc(.inventory=APPLES|APPLE,.hp=24,.avo=0.03125,.threshold=2), // Tree
+  Npc() // Family Member
+}
 
 ;Location locs[]={{0},
   {.type=ROOM,.south=4,.west=6,.items=CHAIR,.description=
@@ -329,7 +342,9 @@ void describe(Location location){
         return;}
 
     ;const char* obj_name=full_enum[action.obj]
+    ;const char* npc_name=nullptr
     ;bool multi_item
+    ;if(fighting)for(int i=0;i<8;i++){if(&npcs[i]==fighting){npc_name=full_enum[i];break;}}
     ;switch(action.com){
         case GO:
           switch(action.obj){

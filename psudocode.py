@@ -65,28 +65,31 @@ class Npc():
   inventory=0
   hp=4
   avo=0.05
-  def __init__(s,inv=0,hp=4,avo=0.05):
+  threshold=4
+  def __init__(s,inv=0,hp=4,avo=0.05,threshold=4):
     s.inventory=int(inv)
     s.hp=int(hp)
     s.avo=float(avo)
+    s.threshold=int(threshold)
 
 loc=4
 inventory=HEALTH_POTION
 player_hp=12
 eaten_items=0
 eaten_npcs=0
+fighting=None
 
 item_uint2 = lambda n,loc: (((n)>>(loc))%4)
 npc_uint2 = lambda n,loc: (1 if bool(((n)%256)&(1<<loc))else 0)+(2 if bool(((n)>>8)&(1<<loc))else 0)
 
 npcs=[
   Npc(inv=BRUSH), # Maid
-  Npc(inv=NORMAL_SWORD|COIN,hp=48,avo=0.125), # Guard
-  Npc(inv=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,hp=128,avo=0.25), # Viscount
+  Npc(inv=NORMAL_SWORD|COIN,hp=28,avo=0.125,threshold=1), # Guard
+  Npc(inv=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,hp=128,avo=0.25,threshold=0), # Viscount
   Npc(inv=NORMAL_SWORD|HEALTH_POTION,hp=64,avo=0.0625), # Orc
-  Npc(inv=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,hp=72,avo=0.1875), # Chef
+  Npc(inv=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,hp=72,avo=0.1875,threshold=0), # Chef
   Npc(avo=0.25), # Human
-  Npc(inv=APPLES|APPLE,hp=24,avo=0.03125), # Tree
+  Npc(inv=APPLES|APPLE,hp=24,avo=0.03125,threshold=2), # Tree
   Npc() # Family Member
 ]
 
@@ -235,6 +238,7 @@ def do_action(action:parse_result):
   global inventory
   global eaten_npcs
   global player_hp
+  global fighting
   location=locs[loc]
   print(action.com,action.obj,action.err) # Debug line. Remove later.
   if action.err==2:
@@ -248,6 +252,9 @@ def do_action(action:parse_result):
   obj_name=full_enum[action.obj]
   match action.com:
     case 0:#GO
+      if not isinstance(fighting,type(None)):
+        print("You can't leave while you are in a fight!")
+        return
       match action.obj:
         case 8:#NORTH
           if location.north==0:
@@ -318,6 +325,7 @@ def do_action(action:parse_result):
         assert(multi_item)
         assert(item_uint2(inventory,action.obj-16)==2)
       print("You picked up the %s" % obj_name)
+      if not isinstance(fighting,type(None)):counter(fighting,full_enum[npcs.index(fighting)])
     case 2:#Drop
       if action.obj<16:
         print("%s is not an item." % obj_name)
@@ -351,11 +359,25 @@ def do_action(action:parse_result):
         assert(multi_item)
         assert(item_uint2(inventory,action.obj-16)==1)
       print("The %s landed on the floor." % obj_name)
+      if not isinstance(fighting,type(None)):counter(fighting,npc_name=full_enum[npcs.index(fighting)])
     case 3:#FIGHT
       if action.obj>=8:
         print("Can't fight %s." % obj_name)
         return
-      #TODO Implement fighting.
+      item_bit=1<<action.obj
+      if location.npcs & item_bit==0:
+        print("The %s is not in this room." % obj_name)
+        return
+      if npcs[action.obj].hp<=0:
+        print("You have already defeated the %s." % obj_name)
+        return
+      if (action.obj==5 and npc_uint2(eaten_npcs,action.obj)>0) or npcs[action.obj].hp<=1:
+        npcs[action.obj].hp=0
+        print("You... WIN!")
+        print("... yeah, it can't fight back...")
+        print("You won.")
+      fighting=npcs[action.obj]
+      print("You are now fighting the "+obj_name+".")
     case 4:#MEET
       # First check if it is somthing that is actually present.
       if action.obj<8:
@@ -394,8 +416,18 @@ def do_action(action:parse_result):
         if location.npcs & item_bit==0:
           print("The %s is not in this room." % obj_name)
           return
-        player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
-        eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
+        if npc_uint2(eaten_npcs,action.obj)!=npcs[action.obj].threshold or npcs[action.obj].hp<=1:
+          player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
+          eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
+          npcs[action.obj].hp=npcs[action.obj].hp>>1
+          print("You ate the %s." % obj_name)
+          if npc_uint2(eaten_npcs,action.obj)>=3:
+            location.npcs=location.npcs^item_bit
+            location.items=location.items | npcs[action.obj].inventory | (BONE if item_bit!=TREE else 0)
+          return
+        print("The %s defended themselves!" % obj_name)
+        fighting=npcs[action.obj]
+        npc_name=full_enum[npcs.index(fighting)]
       elif action.obj<16:
         print("Ya can't eat a direction...")
         return
@@ -417,8 +449,7 @@ def do_action(action:parse_result):
           else:
             inventory=inventory^(item_bit | item_bit<<1)
             assert(not bool(inventory & (item_bit<<1)),("1"if bool(inventory & (item_bit<<1))else"0")+("1"if bool(inventory & (item_bit))else"0"))
-      # Then resolve what happens when the object is eaten.
-      #TODO implement
+      if not isinstance(fighting,type(None)):counter(fighting,full_enum[npcs.index(fighting)])
     case 6:#SWING
       if action.obj<16:
         print("%s is not an item." % obj_name)
@@ -427,7 +458,45 @@ def do_action(action:parse_result):
       if item_bit & inventory==0:
         print("You don't have any %s." % obj_name)
         return
-      #TODO implement
+      print("You swung the "+obj_name+".")
+      if isinstance(fighting,type(None)):
+        if bool(item_bit & STAIRCASE)and loc==4:
+          inventory=inventory ^ item_bit
+          locs[4].down=7
+          print("You lost your grip.")
+          print("The staircase fell through the floor.")
+          return
+        print("... but nothing happened.")
+        return
+      npc_name=full_enum[npcs.index(fighting)] # This will be declared sooner in the C++ code.
+      roll=ran()
+      if roll>=fighting.avo:
+        print("The attack connected!")
+        atk=int(descript_consts.item_dmg[action.obj-16]+ran()+(descript_consts.item_dmg[action.obj-16]*ran()/2))
+        fighting.hp=fighting.hp-atk if fighting.hp-atk>=0 else 0
+        print("You delt",atk,"damage!")
+        if fighting.hp<=0:
+          print("You win!!!")
+          fighting=None
+          return
+      elif roll>=0.05:print("The",npc_name,"dodged.")
+      else:print("The attack missed.")
+      counter(fighting,npc_name)
+
+def counter(npc,npc_name):
+  global player_hp
+  print("The",npc_name,"attacks!")
+
+  if ran()<0.125:dmg=0
+  else:
+    wpn=float()
+    for i in range(15):
+      if bool(1<<i & npc.inventory):wpn=max(descript_consts.item_dmg[i],wpn)
+    dmg=max(int(wpn+ran()*5-2.5),0)
+    player_hp-=dmg
+
+  if dmg==0:print("The attack missed.")
+  else:print("You were hit for",dmg,"damage!")
 
 
 if __name__=="__main__":

@@ -15,6 +15,24 @@ item_info=("It looks like a toy sword, but you probably have the strength to use
 "A maid's brush.",
 "You think you can pull this lever.")
 
+item_dmg=(
+  3,
+  0.25,
+  0.25,
+  1/2+1/16,
+  1/2+1/16,
+  2,
+  2,
+  4.5,
+  4,
+  1.5,
+  5+5/8,
+  8.75,
+  16,
+  0.5,
+  5/4,
+  0)
+
 npc_speech=(("The maid is cleaning the corridor.\n\"Can I help you?\"",
 "The maid isn't cleaning the corridor anymore.\n\"Owch!\nDid you just eat my %2A%2A%2A%2A?\nWhy?\"",
 "The maid isn't cleaning the corridor anymore.\n\"Owowowowowowowowowowwwwwwwww!\nOk ok okokokokok.\nPlease... please just kill me...\nI can't live like this.\"",
@@ -197,6 +215,7 @@ npc_info=parse_npc_objs(parse_mkdown(npc_info))
 if __name__=="__main__":
   print(make_c_arr(item_info,"item_info"))
   print("\n")
+  print("const float item_dmg[16]={",*(str(i)+","for i in item_dmg),"};\n")
   print(make_c_arr(npc_speech,"npc_speech"))
   print("\n")
   print(make_c_arr(npc_info,"npc_info"))
