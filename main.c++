@@ -141,9 +141,12 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 
 ;struct Npc{
     word inventory=0;
-    word hp=4;
+    byte hp=4;
+    byte maxhp=4;
     float avo=0.05;
     byte threshold=4;
+
+    Npc(word inventory=0,byte hp=4,float avo=0.05,byte threshold=4):inventory(inventory),hp(hp),avo(avo),threshold(threshold);
 }
 
 ;byte loc=4
@@ -158,13 +161,13 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 #define check_can_hold_multiple(arr) ((arr)&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS)) // Check if an item can be stacked.
 
 Npc npcs[]={
-  Npc(.inventory=BRUSH), // Maid
-  Npc(.inventory=NORMAL_SWORD|COIN,.hp=48,.avo=0.125,.threshold=1), // Guard
-  Npc(.inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,.hp=128,.avo=0.25,.threshold=0), // Viscount
-  Npc(.inventory=NORMAL_SWORD|HEALTH_POTION,.hp=64,.avo=0.0625), // Orc
-  Npc(.inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,.hp=72,.avo=0.1875,.threshold=0), // Chef
-  Npc(.avo=0.25), // Human
-  Npc(.inventory=APPLES|APPLE,.hp=24,.avo=0.03125,.threshold=2), // Tree
+  Npc(inventory=BRUSH), // Maid
+  Npc(inventory=NORMAL_SWORD|COIN,hp=48,avo=0.125,threshold=1), // Guard
+  Npc(inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,hp=128,avo=0.25,threshold=0), // Viscount
+  Npc(inventory=NORMAL_SWORD|HEALTH_POTION,hp=64,avo=0.0625), // Orc
+  Npc(inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,hp=72,avo=0.1875,threshold=0), // Chef
+  Npc(inventory=0,hp=4,avo=0.05,avo=025), // Human
+  Npc(inventory=APPLES|APPLE,hp=24,avo=0.03125,threshold=2), // Tree
   Npc() // Family Member
 }
 

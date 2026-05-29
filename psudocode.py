@@ -64,13 +64,18 @@ class Location():
 class Npc():
   inventory=0
   hp=4
+  maxhp=4
   avo=0.05
   threshold=4
   def __init__(s,inv=0,hp=4,avo=0.05,threshold=4):
     s.inventory=int(inv)
     s.hp=int(hp)
+    s.maxhp=s.hp
     s.avo=float(avo)
     s.threshold=int(threshold)
+  
+  def get_name(self)->str:
+    return full_enum[npcs.index(self)]
 
 loc=4
 inventory=HEALTH_POTION
@@ -325,7 +330,7 @@ def do_action(action:parse_result):
         assert(multi_item)
         assert(item_uint2(inventory,action.obj-16)==2)
       print("You picked up the %s" % obj_name)
-      if not isinstance(fighting,type(None)):counter(fighting,full_enum[npcs.index(fighting)])
+      if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 2:#Drop
       if action.obj<16:
         print("%s is not an item." % obj_name)
@@ -359,7 +364,7 @@ def do_action(action:parse_result):
         assert(multi_item)
         assert(item_uint2(inventory,action.obj-16)==1)
       print("The %s landed on the floor." % obj_name)
-      if not isinstance(fighting,type(None)):counter(fighting,npc_name=full_enum[npcs.index(fighting)])
+      if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 3:#FIGHT
       if action.obj>=8:
         print("Can't fight %s." % obj_name)
@@ -385,7 +390,12 @@ def do_action(action:parse_result):
         if location.npcs & item_bit==0:
           print("The %s is not in this room." % obj_name)
           return
-        print(descript_consts.npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)])
+        if not isinstance(fighting,type(None)):
+          if npcs[action.obj]!=fighting:
+            print("Your focus is on %s." % fighting.get_name())
+            return
+          print("They have",fighting.hp,"hp.")
+        else:print(descript_consts.npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)])
       elif action.obj<16:
         item_bit=0 # This variable will be used differently on this path.
         match action.obj:
@@ -406,6 +416,8 @@ def do_action(action:parse_result):
           print("There is no %s." % obj_name)
           return
         print(descript_consts.item_info[action.obj-16]) # Then display info about it.
+        return
+      if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 5:#EAT
       # First check if it is somthing that is actually present.
       if action.obj<8:
@@ -421,13 +433,32 @@ def do_action(action:parse_result):
           eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
           npcs[action.obj].hp=npcs[action.obj].hp>>1
           print("You ate the %s." % obj_name)
-          if npc_uint2(eaten_npcs,action.obj)>=3:
-            location.npcs=location.npcs^item_bit
-            location.items=location.items | npcs[action.obj].inventory | (BONE if item_bit!=TREE else 0)
-          return
-        print("The %s defended themselves!" % obj_name)
-        fighting=npcs[action.obj]
-        npc_name=full_enum[npcs.index(fighting)]
+        elif fighting!=npcs[action.obj]:
+          print("The %s defended themselves!" % obj_name)
+          fighting=npcs[action.obj]
+          npc_name=fighting.get_name()
+        
+        if npc_uint2(eaten_npcs,action.obj)>=3:
+          location.npcs=location.npcs^item_bit
+          location.items=location.items | npcs[action.obj].inventory | (BONE if item_bit!=TREE else 0)
+          if fighting==npcs[action.obj]:
+            print("You win!!!")
+            fighting=None
+        if fighting==npcs[action.obj]:
+          roll=ran()
+          if roll*2>=fighting.avo:
+            roll2=2+ran()*3
+            atk=int(roll2)
+            fighting.hp=fighting.hp-atk if fighting.hp-atk>=0 else 0
+            if fighting.hp>1:print("You bit for",atk,"damage!")
+            player_hp+=int(roll2/2+ran())
+          elif roll>=0.05 and fighting.hp>1:print("The",npc_name,"dodged.")
+          elif fighting.hp>1:print("The bite missed.")
+          if fighting.hp<=1:
+            fighting.hp=0
+            print("You win!!!")
+            fighting=None
+
       elif action.obj<16:
         print("Ya can't eat a direction...")
         return
@@ -437,7 +468,10 @@ def do_action(action:parse_result):
           print("There is no %s." % obj_name)
           return
         on_floor=bool(location.items & item_bit)or(check_can_hold_multiple(item_bit)and item_uint2(location.items,action.obj-16))
-        if player_hp+hp_enum[action.obj]<=max(64,player_hp):player_hp+=hp_enum[action.obj]
+        print("You ate the %s." % obj_name)
+        if hp_enum[action.obj]==0:
+          player_hp=0
+        elif player_hp+hp_enum[action.obj]<=max(64,player_hp):player_hp+=hp_enum[action.obj]
         elif player_hp<64:player_hp=64
         if (not check_can_hold_multiple(item_bit))or(item_uint2(location.items if on_floor else inventory,action.obj-16)%2):
           if on_floor:location.items=location.items^item_bit
@@ -449,7 +483,7 @@ def do_action(action:parse_result):
           else:
             inventory=inventory^(item_bit | item_bit<<1)
             assert(not bool(inventory & (item_bit<<1)),("1"if bool(inventory & (item_bit<<1))else"0")+("1"if bool(inventory & (item_bit))else"0"))
-      if not isinstance(fighting,type(None)):counter(fighting,full_enum[npcs.index(fighting)])
+      if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 6:#SWING
       if action.obj<16:
         print("%s is not an item." % obj_name)
@@ -468,7 +502,7 @@ def do_action(action:parse_result):
           return
         print("... but nothing happened.")
         return
-      npc_name=full_enum[npcs.index(fighting)] # This will be declared sooner in the C++ code.
+      npc_name=fighting.get_name() # This will be declared sooner in the C++ code.
       roll=ran()
       if roll>=fighting.avo:
         print("The attack connected!")
@@ -482,6 +516,9 @@ def do_action(action:parse_result):
       elif roll>=0.05:print("The",npc_name,"dodged.")
       else:print("The attack missed.")
       counter(fighting,npc_name)
+  if player_hp<=0:
+    print("GAME OVER!!!")
+    action.com=QUIT
 
 def counter(npc,npc_name):
   global player_hp
