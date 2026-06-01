@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 from random import random as ran
 import descript_consts
@@ -76,6 +77,19 @@ class Npc():
   
   def get_name(self)->str:
     return full_enum[npcs.index(self)]
+
+class out_stream():
+  def __init__(s,target):
+    if not callable(getattr(target,"write",None)):raise TypeError("Target is not writable.")
+    s.target=target
+  def write(s,out):
+    s.target.write(out)
+  def __lshift__(self,other):
+    if isinstance(other,bytes):self.target.write(other)
+    else:self.target.write(str(other))
+    return self
+
+cout=out_stream(sys.stdout)
 
 loc=4
 inventory=HEALTH_POTION
@@ -214,13 +228,17 @@ def parse(inp_str) -> parse_result:
   return out
 
 def describe(location:Location):
-  print("You are in a %s." % type_enum[locs[loc].type_])
-  print(location.description)
+  (cout 
+  << "You are in a " << type_enum[locs[loc].type_] << ".\n"
+  << locs[loc].description << '\n')
   if location.items & ~LEVER!=0:
-    print("On the floor, there is:")
+    cout << "\nOn the floor, there is:\n"
     for i in range(15):
-      if location.items & 1<<i:print("-",full_enum[16+i])
-    print()
+      if location.items & 1<<i:(cout
+      << "-"
+      << full_enum[16+i]
+      << '\n')
+    cout << '\n'
   for i in range(8):
     if 1<<i & location.npcs:
       assert(npc_uint2(eaten_npcs,i)<3,"The NPC should have been removed after being eaten a third time.")
@@ -247,77 +265,77 @@ def do_action(action:parse_result):
   location=locs[loc]
   print(action.com,action.obj,action.err) # Debug line. Remove later.
   if action.err==2:
-    print("Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n")
+    cout << "Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
     return
   if action.err==1:
     if action.com>=QUIT:return
-    print("Invalid object to %s" % command_enum[action.com])
+    cout << "Invalid object to " << command_enum[action.com] << "!\n"
     return
   
   obj_name=full_enum[action.obj]
   match action.com:
     case 0:#GO
       if not isinstance(fighting,type(None)):
-        print("You can't leave while you are in a fight!")
+        cout << "You can't leave while you are in a fight!\n"
         return
       match action.obj:
         case 8:#NORTH
           if location.north==0:
-            print("No way to go north.")
+            cout << "No way to go north.\n"
             return
           loc=location.north
-          print("You went north.")
+          cout << "You went north.\n"
         case 9:#EAST
           if location.east==0:
-            print("No way to go east.")
+            cout << "No way to go east.\n"
             return
           loc=location.east
-          print("You went east.")
+          cout << "You went east.\n"
         case 10:#SOUTH
           if location.south==0:
-            print("No way to go south.")
+            cout << "No way to go south.\n"
             return
           loc=location.south
-          print("You went south.")
+          cout << "You went south.\n"
         case 11:#WEST
           if location.west==0:
-            print("No way to go west.")
+            cout << "No way to go west.\n"
             return
           loc=location.west
-          print("You went west.")
+          cout << "You went west.\n"
         case 12:#UP
           if location.up==0:
-            print("No way to go up.")
+            cout << "No way to go up.\n"
             return
           loc=location.up
-          print("You went up.")
+          cout << "You went up.\n"
         case 13:#Down
           if location.down==0:
-            print("No way to go down.")
+            cout << "No way to go down.\n"
             return
           loc=location.down
-          print("You went down.")
+          cout << "You went down.\n"
         case _:
-          print("%s is an invalid direction." % obj_name)
+          cout << obj_name<< " is an invalid direction.\n"
           return
       describe(locs[loc])
       return
     case 1:#GET
       if action.obj<16:
-        print("%s is not an item." % obj_name)
+        cout << obj_name << " is not an item.\n"
         return
       item_bit=1<<(action.obj-16)
       multi_item=check_can_hold_multiple(item_bit)
       if (item_bit | (item_bit<<1 if multi_item else 0)) & location.items==0:
-        print("There is no %s on the ground." % obj_name)
+        cout << "There is no "<<obj_name<<" on the ground.\n"
         return
       if multi_item:
         if item_uint2(inventory,action.obj-16)==3:
-          print("Too many %ss are already in your inventory." % obj_name)
+          cout << "Too many "<<obj_name<<"s are already in your inventory.\n"
           return
       else:
         if bool(item_bit & inventory):
-          print("%s is already in your inventory." % obj_name)
+          cout << obj_name <<" is already in your inventory.\n"
           return
       location.items=location.items ^ item_bit
       if location.items&item_bit!=0:
@@ -329,29 +347,29 @@ def do_action(action:parse_result):
         inventory=inventory ^ (item_bit<<1)
         assert(multi_item)
         assert(item_uint2(inventory,action.obj-16)==2)
-      print("You picked up the %s" % obj_name)
+      cout << "You picked up the " << obj_name << ".\n"
       if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 2:#Drop
       if action.obj<16:
-        print("%s is not an item." % obj_name)
+        cout << obj_name << " is not an item.\n"
         return
       item_bit=1<<(action.obj-16)
       multi_item=check_can_hold_multiple(item_bit)
       if multi_item:
         if item_uint2(location.items,action.obj-16)==3:
-          print("The floor seems full...")
+          cout << "The floor seems full...\n"
           return
       else:
         if bool(item_bit & location.items):
-          print("%s is already on the floor." % obj_name)
+          cout << obj_name << " is already on the floor.\n"
           return
       if (item_bit | (item_bit<<1 if multi_item else 0)) & inventory==0:
-        print("You don't have any %s." % obj_name)
+        cout << "You don't have any "<< obj_name << ".\n"
         return
       if bool(item_bit & STAIRCASE)and loc==4:
         inventory=inventory ^ item_bit
         locs[4].down=7
-        print("The staircase fell through the floor.")
+        cout << "The staircase fell through the floor.\n"
         return
       location.items=location.items ^ item_bit
       if location.items&item_bit==0:
@@ -363,39 +381,39 @@ def do_action(action:parse_result):
         inventory=inventory ^ (item_bit<<1)
         assert(multi_item)
         assert(item_uint2(inventory,action.obj-16)==1)
-      print("The %s landed on the floor." % obj_name)
+      cout << "The "<<obj_name<<" landed on the floor.\n"
       if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 3:#FIGHT
       if action.obj>=8:
-        print("Can't fight %s." % obj_name)
+        cout << "Can't fight "<<obj_name<<".\n"
         return
       item_bit=1<<action.obj
       if location.npcs & item_bit==0:
-        print("The %s is not in this room." % obj_name)
+        cout << "The "<<obj_name<<" is not in this room.\n"
         return
       if npcs[action.obj].hp<=0:
-        print("You have already defeated the %s." % obj_name)
+        cout << "You have already defeated the " << obj_name << ".\n"
         return
       if (action.obj==5 and npc_uint2(eaten_npcs,action.obj)>0) or npcs[action.obj].hp<=1:
         npcs[action.obj].hp=0
-        print("You... WIN!")
-        print("... yeah, it can't fight back...")
-        print("You won.")
+        cout << "You... WIN!\n"
+        cout << "... yeah, it can't fight back...\n"
+        cout << "You won.\n"
       fighting=npcs[action.obj]
-      print("You are now fighting the "+obj_name+".")
+      cout << "You are now fighting the " << obj_name << ".\n"
     case 4:#MEET
       # First check if it is somthing that is actually present.
       if action.obj<8:
         item_bit=1<<action.obj
         if location.npcs & item_bit==0:
-          print("The %s is not in this room." % obj_name)
+          cout << "The "<<obj_name<<" is not in this room.\n"
           return
         if not isinstance(fighting,type(None)):
           if npcs[action.obj]!=fighting:
-            print("Your focus is on %s." % fighting.get_name())
+            cout << "Your focus is on " << fighting.get_name() << ".\n"
             return
-          print("They have",fighting.hp,"hp.")
-        else:print(descript_consts.npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)])
+          cout << "They have "<<fighting.hp<<" hp.\n"
+        else:cout << descript_consts.npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)]
       elif action.obj<16:
         item_bit=0 # This variable will be used differently on this path.
         match action.obj:
@@ -408,14 +426,14 @@ def do_action(action:parse_result):
           case 14:item_bit=int(True)
           case 15:item_bit=int(True)
         if bool(item_bit):
-          print("There is nothing %s." % obj_name)
+          cout << "There is nothing "<<obj_name<<".\n"
           return
       else:
         item_bit=1<<(action.obj-16)
         if (location.items|inventory) & item_bit==0:
-          print("There is no %s." % obj_name)
+          cout << "There is no " << obj_name << ".\n"
           return
-        print(descript_consts.item_info[action.obj-16]) # Then display info about it.
+        cout << descript_consts.item_info[action.obj-16] # Then display info about it.
         return
       if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 5:#EAT
@@ -423,18 +441,18 @@ def do_action(action:parse_result):
       if action.obj<8:
         item_bit=1<<action.obj
         if bool(item_bit & ((eaten_npcs>>8)&(eaten_npcs%256))):
-          print("You have already eaten the %s." % obj_name)
+          cout << "You have already eaten the " << obj_name << ".\n"
           return
         if location.npcs & item_bit==0:
-          print("The %s is not in this room." % obj_name)
+          cout << "The "<<obj_name<<" is not in this room.\n"
           return
         if npc_uint2(eaten_npcs,action.obj)!=npcs[action.obj].threshold or npcs[action.obj].hp<=1:
           player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
           eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
           npcs[action.obj].hp=npcs[action.obj].hp>>1
-          print("You ate the %s." % obj_name)
+          cout << "You ate the " << obj_name << ".\n"
         elif fighting!=npcs[action.obj]:
-          print("The %s defended themselves!" % obj_name)
+          cout << "The "<<obj_name<<" defended themselves!\n"
           fighting=npcs[action.obj]
           npc_name=fighting.get_name()
         
@@ -442,7 +460,7 @@ def do_action(action:parse_result):
           location.npcs=location.npcs^item_bit
           location.items=location.items | npcs[action.obj].inventory | (BONE if item_bit!=TREE else 0)
           if fighting==npcs[action.obj]:
-            print("You win!!!")
+            cout << "You win!!!\n"
             fighting=None
         if fighting==npcs[action.obj]:
           roll=ran()
@@ -450,25 +468,25 @@ def do_action(action:parse_result):
             roll2=2+ran()*3
             atk=int(roll2)
             fighting.hp=fighting.hp-atk if fighting.hp-atk>=0 else 0
-            if fighting.hp>1:print("You bit for",atk,"damage!")
+            if fighting.hp>1:cout << "You bit for "<<atk<<" damage!\n"
             player_hp+=int(roll2/2+ran())
-          elif roll>=0.05 and fighting.hp>1:print("The",npc_name,"dodged.")
-          elif fighting.hp>1:print("The bite missed.")
+          elif roll>=0.05 and fighting.hp>1:cout << "The "<<npc_name<<" dodged.\n"
+          elif fighting.hp>1:cout << "The bite missed.\n"
           if fighting.hp<=1:
             fighting.hp=0
-            print("You win!!!")
+            cout << "You win!!!\n"
             fighting=None
 
       elif action.obj<16:
-        print("Ya can't eat a direction...")
+        cout << "Ya can't eat a direction...\n"
         return
       else:
         item_bit=1<<(action.obj-16)
         if (location.items|inventory) & (item_bit | (item_bit<<1 if check_can_hold_multiple(item_bit)else 0))==0:
-          print("There is no %s." % obj_name)
+          cout << "There is no "<< obj_name << ".\n"
           return
         on_floor=bool(location.items & item_bit)or(check_can_hold_multiple(item_bit)and item_uint2(location.items,action.obj-16))
-        print("You ate the %s." % obj_name)
+        cout << "You ate the " << obj_name << ".\n"
         if hp_enum[action.obj]==0:
           player_hp=0
         elif player_hp+hp_enum[action.obj]<=max(64,player_hp):player_hp+=hp_enum[action.obj]
@@ -486,43 +504,43 @@ def do_action(action:parse_result):
       if not isinstance(fighting,type(None)):counter(fighting,fighting.get_name())
     case 6:#SWING
       if action.obj<16:
-        print("%s is not an item." % obj_name)
+        cout << obj_name <<" is not an item.\n"
         return
       item_bit=1<<(action.obj-16)
       if item_bit & inventory==0:
-        print("You don't have any %s." % obj_name)
+        cout << "You don't have any "<< obj_name << ".\n"
         return
-      print("You swung the "+obj_name+".")
+      cout << "You swung the " << obj_name << ".\n"
       if isinstance(fighting,type(None)):
         if bool(item_bit & STAIRCASE)and loc==4:
           inventory=inventory ^ item_bit
           locs[4].down=7
-          print("You lost your grip.")
-          print("The staircase fell through the floor.")
+          cout << "You lost your grip.\n"
+          cout << "The staircase fell through the floor.\n"
           return
-        print("... but nothing happened.")
+        cout << "... but nothing happened.\n"
         return
       npc_name=fighting.get_name() # This will be declared sooner in the C++ code.
       roll=ran()
       if roll>=fighting.avo:
-        print("The attack connected!")
+        cout << "The attack connected!\n"
         atk=int(descript_consts.item_dmg[action.obj-16]+ran()+(descript_consts.item_dmg[action.obj-16]*ran()/2))
         fighting.hp=fighting.hp-atk if fighting.hp-atk>=0 else 0
-        print("You delt",atk,"damage!")
+        cout << "You delt "<<atk<<" damage!\n"
         if fighting.hp<=0:
-          print("You win!!!")
+          cout << "You win!!!\n"
           fighting=None
           return
-      elif roll>=0.05:print("The",npc_name,"dodged.")
-      else:print("The attack missed.")
+      elif roll>=0.05:cout << "The "<<npc_name<<" dodged.\n"
+      else:cout << "The attack missed.\n"
       counter(fighting,npc_name)
   if player_hp<=0:
-    print("GAME OVER!!!")
+    cout << "GAME OVER!!!\n"
     action.com=QUIT
 
 def counter(npc,npc_name):
   global player_hp
-  print("The",npc_name,"attacks!")
+  cout << "The "<<npc_name<<" attacks!\n"
 
   if ran()<0.125:dmg=0
   else:
@@ -532,8 +550,8 @@ def counter(npc,npc_name):
     dmg=max(int(wpn+ran()*5-2.5),0)
     player_hp-=dmg
 
-  if dmg==0:print("The attack missed.")
-  else:print("You were hit for",dmg,"damage!")
+  if dmg==0:cout << "The attack missed.\n"
+  else:cout << "You were hit for " << dmg <<" damage!\n"
 
 
 if __name__=="__main__":
