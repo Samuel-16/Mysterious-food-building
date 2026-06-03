@@ -6,6 +6,7 @@
 #include <cctype> // For upper/lower case conversion.
 #include <cstdint> // For better practice int types.
 #include <cassert> // To alert if any program states intended to be impossible are reached.
+#include "descript_consts.h"
 
 // Set datatype names. to avoid needing to type longer names repeatedly.
 using byte=std::uint8_t;  // A byte will be a one byte positive integer
@@ -106,13 +107,14 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     MEET,
     EAT,
     SWING,
+    HELP,
     QUIT,
     RESET,
-    HELP
+    GAME_OVER
 }
 
 ;const char command_enum[42][6]=
-{  "GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "QUIT", "RESET", "HELP",\
+{  "GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "HELP", "QUIT", "RESET",\
 "VISIT","LIFT","THROW","HIT",  "CHECK", "SWALL","USE",  "EXIT", "RESTA", "HINT",\
   "行","取",   "落",   "戦",     "合",   "食",   "振",    "辞",   "リ",    "助",\
   "訪","拾",   "投",   "当",     "見",   "飲",   "使",    "出",   "再",    "仄",\
@@ -145,8 +147,6 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     byte maxhp=4;
     float avo=0.05;
     byte threshold=4;
-
-    Npc(word inventory=0,byte hp=4,float avo=0.05,byte threshold=4):inventory(inventory),hp(hp),avo(avo),threshold(threshold);
 }
 
 ;byte loc=4
@@ -155,19 +155,21 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 ;word eaten_items=0
 ;word eaten_npcs=0
 ;Npc* fighting=nullptr
+;static void counter(Npc* npc,const char* npc_name)
 
 #define item_uint2(n,loc) (((n)>>(loc))%4) // Isolate 2 adjacent bits as a single integer.
 #define npc_uint2(n,loc) (((((n)%256)&(1<<(loc)))?1:0)|((((n)>>8)&(1<<(loc)))?2:0)) // Isolate a bit in two adjacent bytes to make a 2-bit integer.
 #define check_can_hold_multiple(arr) ((arr)&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS)) // Check if an item can be stacked.
+#define ran() ((double)rand())/((double)RAND_MAX) // Generate a random float.
 
-Npc npcs[]={
-  Npc(inventory=BRUSH), // Maid
-  Npc(inventory=NORMAL_SWORD|COIN,hp=48,avo=0.125,threshold=1), // Guard
-  Npc(inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,hp=128,avo=0.25,threshold=0), // Viscount
-  Npc(inventory=NORMAL_SWORD|HEALTH_POTION,hp=64,avo=0.0625), // Orc
-  Npc(inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,hp=72,avo=0.1875,threshold=0), // Chef
-  Npc(inventory=0,hp=4,avo=0.05,avo=025), // Human
-  Npc(inventory=APPLES|APPLE,hp=24,avo=0.03125,threshold=2), // Tree
+;Npc npcs[]={
+  {.inventory=BRUSH}, // Maid
+  {.inventory=NORMAL_SWORD|COIN,.hp=48,.maxhp=48,.avo=0.125,.threshold=1}, // Guard
+  {.inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,.hp=128,.maxhp=136,.avo=0.25,.threshold=0}, // Viscount
+  {.inventory=NORMAL_SWORD|HEALTH_POTION,.hp=64,.maxhp=64,.avo=0.0625}, // Orc
+  {.inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,.hp=72,.maxhp=96,.avo=0.1875,.threshold=0}, // Chef
+  {.inventory=0,.avo=0.25}, // Human
+  {.inventory=APPLES|APPLE,.hp=24,.maxhp=24,.avo=0.03125,.threshold=1}, // Tree
   Npc() // Family Member
 }
 
@@ -297,7 +299,7 @@ There is an entrance from the west; covered by some kind of banner, which is too
     ;return out
 ;}
 
-void describe(Location location){
+void describe(const Location location){
   std::cout 
   << "You are in a " << type_enum[locs[loc].type] << ".\n"
   << locs[loc].description << '\n';
@@ -308,6 +310,11 @@ void describe(Location location){
       << "-"
       << full_enum[16+i]
       << '\n';}
+  for(byte i=0;i<8;i++)
+    if(1<<i & location.npcs)
+      std::cout
+      << npc_info[i][npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)]
+      << '\n';
   if (location.north>0)
     std::cout << "NORTH: ->"
     << type_enum[locs[location.north].type]
@@ -333,7 +340,7 @@ void describe(Location location){
     << type_enum[locs[location.down].type]
     << '\n';}
 
-;void do_action(parse_result action){
+;void do_action(parse_result &action){
     ;Location &location=locs[loc]
     ;word item_bit // In event of undefined behaviour; initialise at zero.
     ;if(action.err==2){
@@ -341,7 +348,7 @@ void describe(Location location){
         return;}
     ;if(action.err==1){
         if(action.com>=QUIT){return;}
-        std::cout<<"Invalid object to "<<command_enum[action.com]<<".\n";
+        std::cout<<"Invalid object to "<<command_enum[action.com]<<"!\n";
         return;}
 
     ;const char* obj_name=full_enum[action.obj]
@@ -350,6 +357,9 @@ void describe(Location location){
     ;if(fighting)for(int i=0;i<8;i++){if(&npcs[i]==fighting){npc_name=full_enum[i];break;}}
     ;switch(action.com){
         case GO:
+          if(fighting!=nullptr){
+            std::cout << "You can't leave while you are in a fight!\n";
+            return;}
           switch(action.obj){
             case NORTH:
               if(location.north==0){
@@ -427,7 +437,8 @@ void describe(Location location){
             assert(multi_item);
             assert(item_uint2(inventory,action.obj-16)==2);}
           ;std::cout<<"You picked up the "<<obj_name<<".\n"
-          ;break;
+          ;if(fighting) counter(fighting,npc_name);
+          break;
         case DROP:
           if(action.obj<16){
             std::cout<<obj_name<<" is not an item.\n";
@@ -462,12 +473,27 @@ void describe(Location location){
             assert(multi_item);
             assert(item_uint2(inventory,action.obj-16)==1);}
           ;std::cout<<"The "<<obj_name<<" landed on the floor.\n"
-          ;break;
+          ;if(fighting) counter(fighting,npc_name);
+          break;
         case FIGHT:
           if(action.obj>=8){
             std::cout<<"Can't fight "<<obj_name<<".\n";
             return;}
-          // TODO Implement fighting.
+          item_bit=1<<action.obj;
+          if((location.npcs & item_bit)==0){
+            std::cout << "The "<<obj_name<<" is not in this room.\n";
+            return;}
+          if(npcs[action.obj].hp<=0){
+            std::cout << "You have already defeated the " << obj_name << ".\n";
+            return;}
+          if((action.obj==5 and npc_uint2(eaten_npcs,action.obj)>0) or npcs[action.obj].hp<=1){
+            npcs[action.obj].hp=0
+            ;std::cout << "You... WIN!\n"
+            << "... yeah, it can't fight back...\n"
+            << "You won.\n";
+            return;}
+          fighting=&npcs[action.obj];
+          std::cout << "You are now fighting the " << obj_name << ".\n";
           break;
         case MEET:
           // First check if it is somthing that is actually present.
@@ -475,7 +501,16 @@ void describe(Location location){
             item_bit=1<<action.obj;
             if((location.npcs & item_bit)==0){
               std::cout<<"The "<<obj_name<<" is not in this room.\n";
-              return;}}
+              return;}
+            if(fighting){
+              if(fighting!=&npcs[action.obj]){
+                std::cout << "Your focus is on " << npc_name << ".\n";
+                return;}
+              std::cout << "They have "<<fighting->hp<<" hp.\n";}
+            else
+              std::cout
+              << npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)]
+              << '\n';}
           else if(action.obj<16){
             item_bit=0; // This variable will be used differently on this path. It will be treated like a bool.
             switch(action.obj){
@@ -510,10 +545,10 @@ void describe(Location location){
             item_bit=1<<(action.obj-16);
             if (((location.items|inventory) & item_bit)==0){
               std::cout<<"There is no "<<obj_name<<".\n";
-              return;
-            }}
-          // Then display info about it.
-          //TODO implement.
+              return;}
+            std::cout << item_info[action.obj-16] << '\n';// Then display info about it.
+            return;}
+          if(fighting) counter(fighting,npc_name);
           break;
         case EAT:
           // First check if it is somthing that is actually present.
@@ -525,8 +560,38 @@ void describe(Location location){
             if((location.npcs & item_bit)==0){
               std::cout<<"The "<<obj_name<<" is not in this room.\n";
               return;}
-            player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj);
-            eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8));}
+            if(npc_uint2(eaten_npcs,action.obj)!=npcs[action.obj].threshold or npcs[action.obj].hp<=1){
+              ;player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
+              ;eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
+              ;npcs[action.obj].hp=npcs[action.obj].hp>>1
+              ;std::cout << "You ate the " << obj_name << ".\n"
+            ;}else if(fighting!=&npcs[action.obj]){
+              ;std::cout << "The "<<obj_name<<" defended themselves!\n"
+              ;fighting=&npcs[action.obj]
+              ;npc_name=obj_name
+            ;}
+
+            if(npc_uint2(eaten_npcs,action.obj)>=3){
+              location.npcs=location.npcs^item_bit;
+              location.items=location.items | npcs[action.obj].inventory | (item_bit!=TREE? BONE:0);
+              if(fighting==&npcs[action.obj]){
+                std::cout << "You win!!!\n";
+                fighting=nullptr;}}
+            if(fighting==&npcs[action.obj]){
+              double roll=ran();
+              if(roll*2>=fighting -> avo){
+                double roll2=2+((double)rand())/((double)RAND_MAX/3);
+                word atk=(word)roll2;
+                fighting->hp=fighting->hp-atk>0?fighting->hp-atk:0;
+                if(fighting->hp>1)std::cout << "You bit for "<<atk<<" damage!\n";
+                player_hp+=int(roll2/2+ran());}
+              else if(roll>=0.05 and fighting->hp>1)std::cout << "The "<<npc_name<<" dodged.\n";
+              else if(fighting->hp>1)std::cout << "The bite missed.\n";
+              if(fighting->hp<=1){
+                fighting->hp=0;
+                std::cout << "You win!!!\n";
+                fighting=nullptr;}}
+            }
           else if(action.obj<16){
             std::cout<<"Ya can't eat a direction...\n";
             return;}
@@ -536,6 +601,9 @@ void describe(Location location){
               std::cout<<"There is no "<<obj_name<<".\n";
               return;}
             bool on_floor=(location.items & item_bit)||(check_can_hold_multiple(item_bit)&&item_uint2(location.items,action.obj-16));
+            std::cout << "You ate the " << obj_name << ".\n";
+            if(hp_enum[action.obj]==0)
+              player_hp=0;
             if(player_hp+hp_enum[action.obj]<=(64>=player_hp?64:player_hp))player_hp+=hp_enum[action.obj];
             else if(player_hp<64)player_hp=64;
             if((not check_can_hold_multiple(item_bit))||(item_uint2(on_floor? location.items:inventory,action.obj-16)%2)){
@@ -549,8 +617,7 @@ void describe(Location location){
                 inventory=inventory^(item_bit | item_bit<<1);
                 assert(!(inventory & (item_bit<<1)));}}
             }
-          // Then resolve what happens when the object is eaten.
-          //TODO implement
+          if(fighting)counter(fighting,npc_name);
           break;
         case SWING:
           if(action.obj<16){
@@ -560,26 +627,65 @@ void describe(Location location){
           if((item_bit & inventory)==0){
             std::cout<<"You don't have any "<<obj_name<<".\n";
             return;}
-          // Then resolve what happens when the object is swung.
-          //TODO implement
+          if(fighting==nullptr){
+            if((item_bit & STAIRCASE)&& loc==4){
+              inventory=inventory ^ item_bit;
+              locs[4].down=7;
+              std::cout << "You lost your grip.\n";
+              std::cout << "The staircase fell through the floor.\n";
+              return;}
+            std::cout << "... but nothing happened.\n";
+            return;}
+          double roll=ran();
+          if(roll>=fighting->avo){
+            ;std::cout << "The attack connected!\n"
+            ;word atk=item_dmg[action.obj-16]+ran()+(item_dmg[action.obj-16]*ran()/2)
+            ;fighting->hp=fighting->hp-atk>=0?fighting->hp-atk:0
+            ;std::cout << "You delt "<<atk<<" damage!\n"
+            ;if(fighting->hp<=0){
+              std::cout << "You win!!!\n";
+              fighting=nullptr;
+              return;}}
+          else if(roll>=0.05)std::cout << "The "<<npc_name<<" dodged.\n";
+          else std::cout << "The attack missed.\n";
+          counter(fighting,npc_name);
           break;
     }
+  if(player_hp<=0){
+    std::cout << "GAME OVER!!!\n";
+    action.com=GAME_OVER;}
 ;}
+
+static void counter(Npc* npc,const char* npc_name){
+  assert(npc_name!=nullptr);
+  std::cout << "The "<<npc_name<<" attacks!\n";
+  word dmg;
+
+  if(std::rand()<(double)RAND_MAX/8)dmg=0;
+  else{
+    float wpn=0;
+    for(byte i=0;i<15;i++){
+      if(1<<i & npc -> inventory && item_dmg[i]>wpn)wpn=item_dmg[i];}
+    float fdmg=wpn+((float)std::rand()/((float)RAND_MAX/5))-2.5;
+    dmg=fdmg>0?(word)fdmg:0;
+    player_hp-=dmg;}
+  
+  if(dmg)std::cout << "You were hit for " << dmg <<" damage!\n";
+  else std::cout << "The attack missed.\n";
+}
 
 ;int main() {
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
     << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
     ;describe(locs[loc])
-    ;std::cout << "What will you do? >"
+    ;std::cout << "What will you do?\n"
     ;char input_buffer[256]
-    ;std::cin.getline(input_buffer,255)
     
-    ;parse_result action=parse(input_buffer)
-    ;while (action.com!=QUIT){
-        ;do_action(action)
-        ;std::cout<< '{' <<(int) action.com << ',' <<(int) action.obj << ',' <<(int) action.err <<'}' //  Debug line. Remove later.
+    ;parse_result action
+    ;while (action.com<QUIT){
         ;std::cout<<"HP: "<<player_hp<<"/64 >"<<std::flush
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
+        ;do_action(action)
     ;}
 ;}

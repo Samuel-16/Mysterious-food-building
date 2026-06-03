@@ -34,7 +34,7 @@ item_dmg=(
   0)
 
 npc_speech=(("The maid is cleaning the corridor.\n\"Can I help you?\"",
-"The maid isn't cleaning the corridor anymore.\n\"Owch!\nDid you just eat my %2A%2A%2A%2A?\nWhy?\"",
+"The maid isn't cleaning the corridor anymore.\n\"Owch!\nDid you just eat my %2A%2A%2A%2A?\n*Why?*\"",
 "The maid isn't cleaning the corridor anymore.\n\"Owowowowowowowowowowwwwwwwww!\nOk ok okokokokok.\nPlease... please just kill me...\nI can't live like this.\"",
 "The maid has gone back to cleaning the corridor.\n\"It still hurts...\nWhat was all that for?\"",
 "The maid isn't cleaning the corridor anymore.\n\"Owch!\nYou win ok!\nStop eating me!\"",
@@ -157,8 +157,10 @@ npc_info=(("A maid is cleaning the corridor.",
 
 def format_str(inp:str) -> str:
   "Highlight npc names so that the player knows they can type them as part of a valid command."
-  for i in ('maid', 'guard', 'viscount', 'orc', 'chef', 'human', 'tree', 'family member', 'メイド', '守衛', '子爵', '鬼', 'コック', '人間', '木', '家の人'):
-    inp=inp.replace(i,"\033[1;30;107m"+i+"\033[0m")
+  for i in ('maid', 'viscount', 'orc', 'chef', 'human', 'tree', 'family member', 'メイド', '子爵', '鬼', 'コック', '人間', '木', '家の人', 'guard', '守衛'):
+    if i in inp:
+      inp=inp.replace(i,"\033[1m"+i+"\033[0m",1)
+      break
   return inp
 
 def parse_npc_objs(itera) -> tuple:
@@ -174,6 +176,8 @@ def parse_mkdown(itera) -> tuple:
   else:return *(i.\
     replace(" **"," \033[1m").# Bold
     replace(" *"," \033[3m").#  Italic
+    replace("\n**"," \033[1m").# Bold
+    replace("\n*"," \033[3m").#  Italic
     replace("**","\033[0m").#   Close formatting
     replace("*","\033[0m").#    Close formatting
     replace(">","\033[0m").#    Close formatting

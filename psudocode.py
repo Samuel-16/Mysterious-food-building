@@ -108,7 +108,7 @@ npcs=[
   Npc(inv=NORMAL_SWORD|HEALTH_POTION,hp=64,avo=0.0625), # Orc
   Npc(inv=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,hp=72,avo=0.1875,threshold=0), # Chef
   Npc(avo=0.25), # Human
-  Npc(inv=APPLES|APPLE,hp=24,avo=0.03125,threshold=2), # Tree
+  Npc(inv=APPLES|APPLE,hp=24,avo=0.03125,threshold=1), # Tree
   Npc() # Family Member
 ]
 
@@ -396,9 +396,10 @@ def do_action(action:parse_result):
         return
       if (action.obj==5 and npc_uint2(eaten_npcs,action.obj)>0) or npcs[action.obj].hp<=1:
         npcs[action.obj].hp=0
-        cout << "You... WIN!\n"
-        cout << "... yeah, it can't fight back...\n"
-        cout << "You won.\n"
+        (cout << "You... WIN!\n"
+        << "... yeah, it can't fight back...\n"
+        << "You won.\n")
+        return
       fighting=npcs[action.obj]
       cout << "You are now fighting the " << obj_name << ".\n"
     case 4:#MEET
