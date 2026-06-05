@@ -5,11 +5,13 @@
 #include <cstdlib> // For random number generation.
 #include <cctype> // For upper/lower case conversion.
 #include <cstdint> // For better practice int types.
+#include <charconv> // To convert numbers to string.
 #include <cassert> // To alert if any program states intended to be impossible are reached.
 #include "descript_consts.h"
 
 // Set datatype names. to avoid needing to type longer names repeatedly.
-using byte=std::uint8_t;  // A byte will be a one byte positive integer
+using byte=std::uint8_t;  // A byte will be a one byte positive integer.
+using ibyte=std::uint_fast8_t;  // An ibyte will be at least a one-byte positive integer.
 using word=std::uint_least16_t; // A word will be a two byte positive integer.
 
 // Ennumerate by powers of two.
@@ -137,8 +139,8 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     byte down=0;
     byte npcs=0;
     word items=0;
-    std::string description="MISSING DESCRIPTION";
-    std::string jp_description="エラー: 説明がありません";
+    const char* description="MISSING DESCRIPTION";
+    const char* jp_description="エラー: 説明がありません";
 }
 
 ;struct Npc{
@@ -149,13 +151,93 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     byte threshold=4;
 }
 
+;struct Text{
+  char string[256]="";
+  byte end=0;
+  byte sleep=0;
+}
+
+;struct Textarr{
+  Text arr[20]={ 0 };
+}
+
+;static inline Text& operator<<(struct Text &inp, const char* string){
+  ibyte i=0;
+  ibyte j=inp.end;
+  while(string[i]){
+    inp.string[j]=string[i];
+    ++i;
+    ++j;
+    assert(i<256 && j<256);}
+  inp.end=j;
+  return inp;
+}
+
+;static inline Text& operator<<(struct Text &inp, const char string){
+  inp.string[inp.end]=string;
+  ++inp.end;
+  return inp;
+}
+
+;static inline Text& operator<<(struct Text &inp, const byte number){
+  if(number<10)
+    return inp << ((char) ('0'+number));
+  if(number<100){
+    inp.string[inp.end] =   ((char) ('0'+(number/10)));
+    inp.string[inp.end+1] = ((char) ('0'+(number%10)));
+    inp.string[inp.end+2] = '\0';
+    inp.end+=2;
+    return inp;}
+  inp.string[inp.end] = (number<200?'1':'2');
+  inp.string[inp.end+1] = ((char) ('0'+((number/10)%10)));
+  inp.string[inp.end+2] = ((char) ('0'+(number%10)));
+  inp.end+=3;
+  return inp;
+}
+
+;template <typename potentialNum>
+static inline Text& operator<<(struct Text &inp, const potentialNum number){
+  auto result = std::to_chars(inp.string + inp.end, inp.string + 24, number);
+  assert(result.ec == std::errc{});
+  inp.end = (result.ptr - inp.string);
+  return inp;
+}
+
+;static inline void operator-(struct Text &inp, const byte number){
+  inp.sleep=number;
+}
+
+;static inline Text& getEnd(struct Textarr &inp){
+  ibyte i=0;
+  while(inp.arr[i].end||inp.arr[i].sleep)
+    ++i;
+  assert(i<20);
+  return inp.arr[i];}
+
+;static inline Text& getPreEnd(struct Textarr &inp){
+  ibyte i=0;
+  while(inp.arr[i+1].end||inp.arr[i+1].sleep)
+    ++i;
+  assert(i<20);
+  return inp.arr[i];}
+
+;template <typename appendable>
+static inline Text& operator<<(struct Textarr &inp, const appendable string){
+  return getEnd(inp) << string;}
+
+;static inline Textarr& operator-(struct Textarr &inp, const byte number){
+  getPreEnd(inp).sleep=number;
+  return inp;
+}
+
+
 ;byte loc=4
 ;word inventory=HEALTH_POTION
 ;signed int player_hp=12
 ;word eaten_items=0
 ;word eaten_npcs=0
 ;Npc* fighting=nullptr
-;static void counter(Npc* npc,const char* npc_name)
+;static Textarr counter(Npc* npc,const char* npc_name,Textarr cout)
 
 #define item_uint2(n,loc) (((n)>>(loc))%4) // Isolate 2 adjacent bits as a single integer.
 #define npc_uint2(n,loc) (((((n)%256)&(1<<(loc)))?1:0)|((((n)>>8)&(1<<(loc)))?2:0)) // Isolate a bit in two adjacent bytes to make a 2-bit integer.
@@ -242,8 +324,8 @@ There is an entrance from the west; covered by some kind of banner, which is too
   {.type=ART_ROOM,.south=25,.items=LEVER,.description=
     R"(The room seems well used as an exit, but dusty paintings hang on dusty walls.)"}}
 
-;std::int_least8_t parse_com_check(const char** arr,int arr_size){
-    for (byte i=0;i<arr_size;i++){
+;static std::int_least8_t parse_com_check(const char** arr,int arr_size){
+    for (ibyte i=0;i<arr_size;i++){
         if (*arr[i]=='\0'){
             return i;
         }
@@ -259,16 +341,16 @@ There is an entrance from the west; covered by some kind of banner, which is too
         return out;}
 
     ;bool using_non_ascii=false; 
-    ;const byte command_enum_length=sizeof(command_enum)/sizeof(command_enum[0])
+    ;const ibyte command_enum_length=sizeof(command_enum)/sizeof(command_enum[0])
 
     ;const char* commands[command_enum_length] // Mutable vaiable pointing to constant data.
-    ;for (byte i=0;i<command_enum_length;i++) // Set the values in the commands array.
+    ;for (ibyte i=0;i<command_enum_length;i++) // Set the values in the commands array.
        {commands[i]=*command_enum+i*sizeof(command_enum[0]);} // Values are pointers to constant chars declared in global scope.
 
-    ;byte i=0
+    ;ibyte i=0
     ;while (i < inp_str.length()){
         using_non_ascii=using_non_ascii||(128 & inp_str[i]); // Ensure case conversion can be disabled if non ascii is detected.
-        for (byte j=0;j<command_enum_length;j++){
+        for (ibyte j=0;j<command_enum_length;j++){
             if (*commands[j]!='\0' && (using_non_ascii?inp_str[i]:std::toupper(inp_str[i]))==*commands[j]) {commands[j]++;}}
         i++;
         out.com=parse_com_check(commands,command_enum_length);
@@ -277,16 +359,16 @@ There is an entrance from the west; covered by some kind of banner, which is too
     if (i>=inp_str.length() && out.com==-1){return out;} // If the while-loop didn't break, return with the error value left at 2.
     ;out.err=1 // Reduce the error value from 2 to 1, to show that the first step completed successfuly.
 
-    ;const byte full_enum_length=sizeof(full_enum)/sizeof(full_enum[0])
+    ;const ibyte full_enum_length=sizeof(full_enum)/sizeof(full_enum[0])
     ;i=out.com<20? i : 0 // i if out.com<20 else 0
     ;out.com=out.com<40 ?(out.com%10): 10
     
     ;const char* objs[full_enum_length] // Mutable vaiable pointing to constant data.
-    ;for (byte j=0;j<full_enum_length;j++) // Set the values in the objs array.
+    ;for (ibyte j=0;j<full_enum_length;j++) // Set the values in the objs array.
        {objs[j]=*full_enum+j*sizeof(full_enum[0]);} // Values are pointers to constant chars declared in global scope.
 
     ;while (i < inp_str.length()){
-        for (byte j=0;j<full_enum_length;j++){
+        for (ibyte j=0;j<full_enum_length;j++){
             if (*objs[j]!='\0' && (using_non_ascii?inp_str[i]:std::tolower(inp_str[i]))==*objs[j]) {objs[j]++;}}
         i++;
         out.obj=parse_com_check(objs,full_enum_length);
@@ -299,133 +381,142 @@ There is an entrance from the west; covered by some kind of banner, which is too
     ;return out
 ;}
 
-void describe(const Location location){
-  std::cout 
-  << "You are in a " << type_enum[locs[loc].type] << ".\n"
+static Textarr describe(const Location location, Textarr cout){
+  cout 
+  << "You are in a " << type_enum[locs[loc].type]
+  << '.' << '\n'
   << locs[loc].description << '\n';
   if (location.items & ~LEVER){
-    std::cout << "\nOn the floor, there is:\n";
+    cout << "\nOn the floor, there is:\n";
     for (int i=0;i<15;i++)
-      if (location.items & 1<<i)std::cout
+      if (location.items & 1<<i)cout
       << "-"
       << full_enum[16+i]
       << '\n';}
-  for(byte i=0;i<8;i++)
+  for(ibyte i=0;i<8;i++)
     if(1<<i & location.npcs)
-      std::cout
+      cout
       << npc_info[i][npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)]
       << '\n';
   if (location.north>0)
-    std::cout << "NORTH: ->"
+    cout << "NORTH: ->"
     << type_enum[locs[location.north].type]
     << '\n';
   if (location.east>0)
-    std::cout << "EAST: ->"
+    cout << "EAST: ->"
     << type_enum[locs[location.east].type]
     << '\n';
   if (location.south>0)
-    std::cout << "SOUTH: ->"
+    cout << "SOUTH: ->"
     << type_enum[locs[location.south].type]
     << '\n';
   if (location.west>0)
-    std::cout << "WEST: ->"
+    cout << "WEST: ->"
     << type_enum[locs[location.west].type]
     << '\n';
   if (location.up>0)
-    std::cout << "UP: ->"
+    cout << "UP: ->"
     << type_enum[locs[location.up].type]
     << '\n';
   if (location.down>0)
-    std::cout << "DOWN: ->"
+    cout << "DOWN: ->"
     << type_enum[locs[location.down].type]
-    << '\n';}
+    << '\n';
+  return cout;}
 
-;void do_action(parse_result &action){
+static void describe(const Location location){
+  Textarr cout=describe(location,{ 0 });
+  for(ibyte i=0;cout.arr[i].string[0]!='\0';i++)
+    std::cout << cout.arr[i].string;
+}
+
+;Textarr do_action(parse_result &action){
     ;Location &location=locs[loc]
     ;word item_bit // In event of undefined behaviour; initialise at zero.
+    ;Textarr cout
     ;if(action.err==2){
-        std::cout<<"Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n";
-        return;}
+        cout<<"Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n";
+        return cout;}
     ;if(action.err==1){
-        if(action.com>=QUIT){return;}
-        std::cout<<"Invalid object to "<<command_enum[action.com]<<"!\n";
-        return;}
+        if(action.com>=QUIT){return cout;}
+        cout<<"Invalid object to "<<command_enum[action.com]<<"!\n";
+        return cout;}
 
     ;const char* obj_name=full_enum[action.obj]
     ;const char* npc_name=nullptr
     ;bool multi_item
-    ;if(fighting)for(int i=0;i<8;i++){if(&npcs[i]==fighting){npc_name=full_enum[i];break;}}
+    ;if(fighting)for(ibyte i=0;i<8;i++){if(&npcs[i]==fighting){npc_name=full_enum[i];break;}}
     ;switch(action.com){
         case GO:
           if(fighting!=nullptr){
-            std::cout << "You can't leave while you are in a fight!\n";
-            return;}
+            cout << "You can't leave while you are in a fight!\n";
+            return cout;}
           switch(action.obj){
             case NORTH:
               if(location.north==0){
-                std::cout<<"No way to go north.\n";
-                return;}
+                cout<<"No way to go north.\n";
+                return cout;}
               loc=location.north;
-              std::cout<<"You went north.\n";
+              cout<<"You went north.\n";
               break;
             case EAST:
               if(location.east==0){
-                std::cout<<"No way to go east.\n";
-                return;}
+                cout<<"No way to go east.\n";
+                return cout;}
               loc=location.east;
-              std::cout<<"You went east.\n";
+              cout<<"You went east.\n";
               break;
             case SOUTH:
               if(location.south==0){
-                std::cout<<"No way to go south.\n";
-                return;}
+                cout<<"No way to go south.\n";
+                return cout;}
               loc=location.south;
-              std::cout<<"You went south.\n";
+              cout<<"You went south.\n";
               break;
             case WEST:
               if(location.west==0){
-                std::cout<<"No way to go west.\n";
-                return;}
+                cout<<"No way to go west.\n";
+                return cout;}
               loc=location.west;
-              std::cout<<"You went west.\n";
+              cout<<"You went west.\n";
               break;
             case UP:
               if(location.up==0){
-                std::cout<<"No way to go up.\n";
-                return;}
+                cout<<"No way to go up.\n";
+                return cout;}
               loc=location.up;
-              std::cout<<"You went up.\n";
+              cout<<"You went up.\n";
               break;
             case DOWN:
               if(location.down==0){
-                std::cout<<"No way to go down.\n";
-                return;}
+                cout<<"No way to go down.\n";
+                return cout;}
               loc=location.down;
-              std::cout<<"You went down.\n";
+              cout<<"You went down.\n";
               break;
             default:
-              std::cout<<obj_name<<" is an invalid direction.\n";
-              return;
+              cout<<obj_name<<" is an invalid direction.\n";
+              return cout;
           }
-          ;describe(locs[loc])
+          ;cout=describe(locs[loc],cout)
           ;break;
         case GET:
           if(action.obj<16){
-            std::cout<<obj_name<<" is not an item.\n";
-            return;}
+            cout<<obj_name<<" is not an item.\n";
+            return cout;}
           ;item_bit=1<<(action.obj-16)
           ;multi_item=check_can_hold_multiple(item_bit)
           ;if (((item_bit | (multi_item? item_bit<<1:0)) & location.items)==0){
-            std::cout<<"There is no "<<obj_name<<" on the ground.\n";
-            return;}
+            cout<<"There is no "<<obj_name<<" on the ground.\n";
+            return cout;}
           if (multi_item){
             if (item_uint2(inventory,action.obj-16)==3){
-              std::cout<<"Too many "<<obj_name<<"s are already in your inventory.";
-              return;
+              cout<<"Too many "<<obj_name<<"s are already in your inventory.";
+              return cout;
             }}
           else{if(item_bit & inventory){
-            std::cout<<obj_name<<" is already in your inventory.\n";
-            return;}}
+            cout<<obj_name<<" is already in your inventory.\n";
+            return cout;}}
           ;location.items=location.items ^ item_bit
           ;if(location.items&item_bit){
             location.items=location.items ^ (item_bit<<1);
@@ -436,32 +527,32 @@ void describe(const Location location){
             inventory=inventory ^ (item_bit<<1);
             assert(multi_item);
             assert(item_uint2(inventory,action.obj-16)==2);}
-          ;std::cout<<"You picked up the "<<obj_name<<".\n"
-          ;if(fighting) counter(fighting,npc_name);
+          ;cout<<"You picked up the "<<obj_name<<'.' << '\n'
+          ;if(fighting) cout=counter(fighting,npc_name,cout);
           break;
         case DROP:
           if(action.obj<16){
-            std::cout<<obj_name<<" is not an item.\n";
-            return;}
+            cout<<obj_name<<" is not an item.\n";
+            return cout;}
           ;item_bit=1<<(action.obj-16)
           ;multi_item=check_can_hold_multiple(item_bit)
           ;if(multi_item){
             if(item_uint2(location.items,action.obj-16)==3){
-              std::cout<<"The floor seems full...\n";
-              return;}}
+              cout<<"The floor seems full...\n";
+              return cout;}}
           else{
             if (item_bit & location.items){
-              std::cout<<obj_name<<" is already on the floor.\n";
-              return;}}
+              cout<<obj_name<<" is already on the floor.\n";
+              return cout;}}
           if(((item_bit | (multi_item? item_bit<<1:0)) & inventory)==0){
-            std::cout<<"You don't have any "<<obj_name<<".\n";
-            return;}
+            cout<<"You don't have any "<<obj_name<<'.' << '\n';
+            return cout;}
           if(loc==4 && (item_bit & STAIRCASE)){
             ;inventory=inventory ^ item_bit
             ;locs[4].down=7
-            ;std::cout
+            ;cout
             << "The staircase fell through the floor.\n"
-            ;return;}
+            ;return cout;}
           ;location.items=location.items ^ item_bit
           ;if((location.items&item_bit)==0){
             location.items=location.items ^ (item_bit<<1);
@@ -472,43 +563,43 @@ void describe(const Location location){
             inventory=inventory ^ (item_bit<<1);
             assert(multi_item);
             assert(item_uint2(inventory,action.obj-16)==1);}
-          ;std::cout<<"The "<<obj_name<<" landed on the floor.\n"
-          ;if(fighting) counter(fighting,npc_name);
+          ;cout<<"The "<<obj_name<<" landed on the floor.\n"
+          ;if(fighting) cout=counter(fighting,npc_name,cout);
           break;
         case FIGHT:
           if(action.obj>=8){
-            std::cout<<"Can't fight "<<obj_name<<".\n";
-            return;}
+            cout<<"Can't fight "<<obj_name<<'.' << '\n';
+            return cout;}
           item_bit=1<<action.obj;
           if((location.npcs & item_bit)==0){
-            std::cout << "The "<<obj_name<<" is not in this room.\n";
-            return;}
+            cout << "The "<<obj_name<<" is not in this room.\n";
+            return cout;}
           if(npcs[action.obj].hp<=0){
-            std::cout << "You have already defeated the " << obj_name << ".\n";
-            return;}
+            cout << "You have already defeated the " << obj_name << '.' << '\n';
+            return cout;}
           if((action.obj==5 and npc_uint2(eaten_npcs,action.obj)>0) or npcs[action.obj].hp<=1){
             npcs[action.obj].hp=0
-            ;std::cout << "You... WIN!\n"
+            ;cout << "You... WIN!\n"
             << "... yeah, it can't fight back...\n"
             << "You won.\n";
-            return;}
+            return cout;}
           fighting=&npcs[action.obj];
-          std::cout << "You are now fighting the " << obj_name << ".\n";
+          cout << "You are now fighting the " << obj_name << '.' << '\n';
           break;
         case MEET:
           // First check if it is somthing that is actually present.
           if(action.obj<8){
             item_bit=1<<action.obj;
             if((location.npcs & item_bit)==0){
-              std::cout<<"The "<<obj_name<<" is not in this room.\n";
-              return;}
+              cout<<"The "<<obj_name<<" is not in this room.\n";
+              return cout;}
             if(fighting){
               if(fighting!=&npcs[action.obj]){
-                std::cout << "Your focus is on " << npc_name << ".\n";
-                return;}
-              std::cout << "They have "<<fighting->hp<<" hp.\n";}
+                cout << "Your focus is on " << npc_name << '.' << '\n';
+                return cout;}
+              cout << "They have "<<fighting->hp<<" hp.\n";}
             else
-              std::cout
+              cout
               << npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)]
               << '\n';}
           else if(action.obj<16){
@@ -539,34 +630,34 @@ void describe(const Location location){
                 item_bit=1;//location.right;
                 break;}
             if(item_bit!=0){
-              std::cout<<"There is nothing "<<obj_name<<".\n";
-              return;}}
+              cout<<"There is nothing "<<obj_name<<'.' << '\n';
+              return cout;}}
           else{
             item_bit=1<<(action.obj-16);
             if (((location.items|inventory) & item_bit)==0){
-              std::cout<<"There is no "<<obj_name<<".\n";
-              return;}
-            std::cout << item_info[action.obj-16] << '\n';// Then display info about it.
-            return;}
-          if(fighting) counter(fighting,npc_name);
+              cout<<"There is no "<<obj_name<<'.' << '\n';
+              return cout;}
+            cout << item_info[action.obj-16] << '\n';// Then display info about it.
+            return cout;}
+          if(fighting) cout=counter(fighting,npc_name,cout);
           break;
         case EAT:
           // First check if it is somthing that is actually present.
           if(action.obj<8){
             item_bit=1<<action.obj;
             if(item_bit & ((eaten_npcs>>8)&(eaten_npcs%256))){ // & both bytes of eaten_npcs together before comparing it to item_bit.
-              std::cout<<"You have already eaten the "<<obj_name<<".\n";
-              return;}
+              cout<<"You have already eaten the "<<obj_name<<'.' << '\n';
+              return cout;}
             if((location.npcs & item_bit)==0){
-              std::cout<<"The "<<obj_name<<" is not in this room.\n";
-              return;}
+              cout<<"The "<<obj_name<<" is not in this room.\n";
+              return cout;}
             if(npc_uint2(eaten_npcs,action.obj)!=npcs[action.obj].threshold or npcs[action.obj].hp<=1){
               ;player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
               ;eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
               ;npcs[action.obj].hp=npcs[action.obj].hp>>1
-              ;std::cout << "You ate the " << obj_name << ".\n"
+              ;cout << "You ate the " << obj_name << '.' << '\n'
             ;}else if(fighting!=&npcs[action.obj]){
-              ;std::cout << "The "<<obj_name<<" defended themselves!\n"
+              ;cout << "The "<<obj_name<<" defended themselves!\n"
               ;fighting=&npcs[action.obj]
               ;npc_name=obj_name
             ;}
@@ -575,7 +666,7 @@ void describe(const Location location){
               location.npcs=location.npcs^item_bit;
               location.items=location.items | npcs[action.obj].inventory | (item_bit!=TREE? BONE:0);
               if(fighting==&npcs[action.obj]){
-                std::cout << "You win!!!\n";
+                cout << "You win!!!\n";
                 fighting=nullptr;}}
             if(fighting==&npcs[action.obj]){
               double roll=ran();
@@ -583,25 +674,25 @@ void describe(const Location location){
                 double roll2=2+((double)rand())/((double)RAND_MAX/3);
                 word atk=(word)roll2;
                 fighting->hp=fighting->hp-atk>0?fighting->hp-atk:0;
-                if(fighting->hp>1)std::cout << "You bit for "<<atk<<" damage!\n";
+                if(fighting->hp>1)cout << "You bit for "<<atk<<" damage!\n";
                 player_hp+=int(roll2/2+ran());}
-              else if(roll>=0.05 and fighting->hp>1)std::cout << "The "<<npc_name<<" dodged.\n";
-              else if(fighting->hp>1)std::cout << "The bite missed.\n";
+              else if(roll>=0.05 and fighting->hp>1)cout << "The "<<npc_name<<" dodged.\n";
+              else if(fighting->hp>1)cout << "The bite missed.\n";
               if(fighting->hp<=1){
                 fighting->hp=0;
-                std::cout << "You win!!!\n";
+                cout << "You win!!!\n";
                 fighting=nullptr;}}
             }
           else if(action.obj<16){
-            std::cout<<"Ya can't eat a direction...\n";
-            return;}
+            cout<<"Ya can't eat a direction...\n";
+            return cout;}
           else{
             item_bit=1<<(action.obj-16);
             if (((location.items|inventory) & (item_bit| (check_can_hold_multiple(item_bit)? item_bit<<1:0)))==0){
-              std::cout<<"There is no "<<obj_name<<".\n";
-              return;}
+              cout<<"There is no "<<obj_name<<'.' << '\n';
+              return cout;}
             bool on_floor=(location.items & item_bit)||(check_can_hold_multiple(item_bit)&&item_uint2(location.items,action.obj-16));
-            std::cout << "You ate the " << obj_name << ".\n";
+            cout << "You ate the " << obj_name << '.' << '\n';
             if(hp_enum[action.obj]==0)
               player_hp=0;
             if(player_hp+hp_enum[action.obj]<=(64>=player_hp?64:player_hp))player_hp+=hp_enum[action.obj];
@@ -617,61 +708,64 @@ void describe(const Location location){
                 inventory=inventory^(item_bit | item_bit<<1);
                 assert(!(inventory & (item_bit<<1)));}}
             }
-          if(fighting)counter(fighting,npc_name);
+          if(fighting)cout=counter(fighting,npc_name,cout);
           break;
         case SWING:
           if(action.obj<16){
-            std::cout<<obj_name<<" is not an item.\n";
-            return;}
+            cout<<obj_name<<" is not an item.\n";
+            return cout;}
           item_bit=1<<(action.obj-16);
           if((item_bit & inventory)==0){
-            std::cout<<"You don't have any "<<obj_name<<".\n";
-            return;}
+            cout<<"You don't have any "<<obj_name<<'.' << '\n';
+            return cout;}
+          cout << "You swung the " << obj_name << '.' << '\n';
           if(fighting==nullptr){
             if((item_bit & STAIRCASE)&& loc==4){
               inventory=inventory ^ item_bit;
               locs[4].down=7;
-              std::cout << "You lost your grip.\n";
-              std::cout << "The staircase fell through the floor.\n";
-              return;}
-            std::cout << "... but nothing happened.\n";
-            return;}
+              cout << "You lost your grip.\n";
+              cout << "The staircase fell through the floor.\n";
+              return cout;}
+            cout << "... but nothing happened.\n";
+            return cout;}
           double roll=ran();
           if(roll>=fighting->avo){
-            ;std::cout << "The attack connected!\n"
+            ;cout << "The attack connected!\n"
             ;word atk=item_dmg[action.obj-16]+ran()+(item_dmg[action.obj-16]*ran()/2)
             ;fighting->hp=fighting->hp-atk>=0?fighting->hp-atk:0
-            ;std::cout << "You delt "<<atk<<" damage!\n"
+            ;cout << "You delt "<<atk<<" damage!\n"
             ;if(fighting->hp<=0){
-              std::cout << "You win!!!\n";
+              cout << "You win!!!\n";
               fighting=nullptr;
-              return;}}
-          else if(roll>=0.05)std::cout << "The "<<npc_name<<" dodged.\n";
-          else std::cout << "The attack missed.\n";
-          counter(fighting,npc_name);
+              return cout;}}
+          else if(roll>=0.05)cout << "The "<<npc_name<<" dodged.\n";
+          else cout << "The attack missed.\n";
+          cout=counter(fighting,npc_name,cout);
           break;
     }
   if(player_hp<=0){
-    std::cout << "GAME OVER!!!\n";
+    cout << "GAME OVER!!!\n";
     action.com=GAME_OVER;}
-;}
+  return cout;}
 
-static void counter(Npc* npc,const char* npc_name){
+static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
   assert(npc_name!=nullptr);
-  std::cout << "The "<<npc_name<<" attacks!\n";
+  cout << "The "<<npc_name<<" attacks!\n";
   word dmg;
 
   if(std::rand()<(double)RAND_MAX/8)dmg=0;
   else{
     float wpn=0;
-    for(byte i=0;i<15;i++){
+    for(ibyte i=0;i<15;i++){
       if(1<<i & npc -> inventory && item_dmg[i]>wpn)wpn=item_dmg[i];}
     float fdmg=wpn+((float)std::rand()/((float)RAND_MAX/5))-2.5;
     dmg=fdmg>0?(word)fdmg:0;
     player_hp-=dmg;}
   
-  if(dmg)std::cout << "You were hit for " << dmg <<" damage!\n";
-  else std::cout << "The attack missed.\n";
+  if(dmg)cout << "You were hit for " << dmg <<" damage!\n";
+  else cout << "The attack missed.\n";
+
+  return cout;
 }
 
 ;int main() {
@@ -686,6 +780,8 @@ static void counter(Npc* npc,const char* npc_name){
         ;std::cout<<"HP: "<<player_hp<<"/64 >"<<std::flush
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
-        ;do_action(action)
+        ;Textarr text = do_action(action)
+        ;for(ibyte i=0;text.arr[i].string[0]!='\0';i++)
+          std::cout << text.arr[i].string;
     ;}
 ;}
