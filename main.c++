@@ -76,6 +76,13 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 -64,3,0,12,0,1,0,-64,0,-2,-96,-128,0,0,-1,0}
 //;const char eat_text[64][4][128]
 
+//Global output string buffer:
+;char outBuff[1024]={0}
+;static void clearOutBuff(){
+  for(std::size_t i=0;i<sizeof(outBuff);++i)
+    outBuff[i]='\0';
+}
+
 // Ennumerations for types of rooms.
 // Automatic ennumeration as increments of 1.
 ;enum Type{
@@ -152,54 +159,59 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 }
 
 ;struct Text{
-  char string[256]="";
-  byte end=0;
-  byte sleep=0;
-}
+  const char* string=nullptr;
+  byte sleep=0;}
 
 ;struct Textarr{
-  Text arr[20]={ 0 };
+  const char* arr[64]={ 0 };
+  byte sleeps[64]={0};
+  char* varStrEnd=nullptr;
+  byte end=0;
+  bool canApp=false;
 }
 
-;static inline Text& operator<<(struct Text &inp, const char* string){
-  ibyte i=0;
-  ibyte j=inp.end;
-  while(string[i]){
-    inp.string[j]=string[i];
-    ++i;
-    ++j;
-    assert(i<256 && j<256);}
-  inp.end=j;
-  return inp;
-}
-
-;static inline Text& operator<<(struct Text &inp, const char string){
-  inp.string[inp.end]=string;
+;static inline Textarr& operator<<(struct Textarr &inp, const char* string){
+  inp.arr[inp.end]=string;
   ++inp.end;
+  inp.canApp=false;
   return inp;
 }
 
-;static inline Text& operator<<(struct Text &inp, const byte number){
+;static inline Textarr& operator<<(struct Textarr &inp, const char string){
+  if(inp.canApp) *(inp.varStrEnd++)=string;
+  else {
+    *(++inp.varStrEnd)=string;
+    inp.arr[inp.end++]=inp.varStrEnd++;
+  }
+  inp.canApp=true;
+  return inp;
+}
+
+;static inline Textarr& operator<<(struct Textarr &inp, const byte number){
   if(number<10)
     return inp << ((char) ('0'+number));
+  if (!inp.canApp){
+    inp.arr[inp.end++]=++inp.varStrEnd;
+    inp.canApp=true;}
   if(number<100){
-    inp.string[inp.end] =   ((char) ('0'+(number/10)));
-    inp.string[inp.end+1] = ((char) ('0'+(number%10)));
-    inp.string[inp.end+2] = '\0';
-    inp.end+=2;
+    *inp.varStrEnd =   ((char) ('0'+(number/10)));
+    *(inp.varStrEnd+1)=((char) ('0'+(number%10)));
+    inp.varStrEnd+=2;
     return inp;}
-  inp.string[inp.end] = (number<200?'1':'2');
-  inp.string[inp.end+1] = ((char) ('0'+((number/10)%10)));
-  inp.string[inp.end+2] = ((char) ('0'+(number%10)));
+  *inp.varStrEnd  =  (number<200?'1':'2');
+  *(inp.varStrEnd+1)=((char) ('0'+((number/10)%10)));
+  *(inp.varStrEnd+2)=((char) ('0'+(number%10)));
   inp.end+=3;
   return inp;
 }
 
-;template <typename potentialNum>
-static inline Text& operator<<(struct Text &inp, const potentialNum number){
-  auto result = std::to_chars(inp.string + inp.end, inp.string + 24, number);
+;template <typename potentialNum> static inline Textarr& operator<<(struct Textarr &inp, const potentialNum number){
+  if (!inp.canApp){
+    inp.arr[inp.end++]=++inp.varStrEnd;
+    inp.canApp=true;}
+  auto result = std::to_chars(inp.varStrEnd, inp.varStrEnd + 36, number);
   assert(result.ec == std::errc{});
-  inp.end = (result.ptr - inp.string);
+  inp.varStrEnd = result.ptr;
   return inp;
 }
 
@@ -207,29 +219,16 @@ static inline Text& operator<<(struct Text &inp, const potentialNum number){
   inp.sleep=number;
 }
 
-;static inline Text& getEnd(struct Textarr &inp){
-  ibyte i=0;
-  while(inp.arr[i].end||inp.arr[i].sleep)
-    ++i;
-  assert(i<20);
-  return inp.arr[i];}
-
-;static inline Text& getPreEnd(struct Textarr &inp){
-  ibyte i=0;
-  while(inp.arr[i+1].end||inp.arr[i+1].sleep)
-    ++i;
-  assert(i<20);
-  return inp.arr[i];}
-
-;template <typename appendable>
-static inline Text& operator<<(struct Textarr &inp, const appendable string){
-  return getEnd(inp) << string;}
-
 ;static inline Textarr& operator-(struct Textarr &inp, const byte number){
-  getPreEnd(inp).sleep=number;
+  assert(inp.end>0);
+  inp.sleeps[inp.end-1]=number;
   return inp;
 }
 
+static inline Textarr& operator<<(struct Textarr &inp, const Text apen){
+  assert(apen.string);
+  return inp << apen.string - apen.sleep;
+}
 
 ;byte loc=4
 ;word inventory=HEALTH_POTION
@@ -425,15 +424,16 @@ static Textarr describe(const Location location, Textarr cout){
   return cout;}
 
 static void describe(const Location location){
-  Textarr cout=describe(location,{ 0 });
-  for(ibyte i=0;cout.arr[i].string[0]!='\0';i++)
-    std::cout << cout.arr[i].string;
+  char buff[24]={0};
+  Textarr cout=describe(location,{.varStrEnd=buff});
+  for(ibyte i=0;i<cout.end;i++)
+    std::cout << cout.arr[i];
 }
 
 ;Textarr do_action(parse_result &action){
     ;Location &location=locs[loc]
     ;word item_bit // In event of undefined behaviour; initialise at zero.
-    ;Textarr cout
+    ;Textarr cout={.varStrEnd=outBuff}
     ;if(action.err==2){
         cout<<"Invalid command. Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n";
         return cout;}
@@ -781,7 +781,8 @@ static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
         ;Textarr text = do_action(action)
-        ;for(ibyte i=0;text.arr[i].string[0]!='\0';i++)
-          std::cout << text.arr[i].string;
+        ;for(ibyte i=0;i<text.end;i++)
+          std::cout << text.arr[i];
+        ;clearOutBuff()
     ;}
 ;}
