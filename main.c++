@@ -186,9 +186,25 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
   return inp;
 }
 
+;static inline void operator+(struct Text &inp, const byte number){
+  inp.sleep+=number;
+}
+
+;static inline Textarr& operator+(struct Textarr &inp, const byte number){
+  assert(inp.end>0);
+  inp.sleeps[inp.end-1]+=number;
+  return inp;
+}
+
 static inline Textarr& operator<<(struct Textarr &inp, const Text apen){
   assert(apen.string);
-  return inp << apen.string - apen.sleep;
+  return (inp << apen.string) - apen.sleep;
+}
+
+static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
+  for(std::size_t i=0;apen.arr[i]!=nullptr;++i){
+    (inp << apen.arr[i]) - apen.sleeps[i];}
+  return inp;
 }
 
 ;byte loc=4
@@ -391,6 +407,27 @@ static void describe(const Location location){
     std::cout << cout.arr[i];
 }
 
+static inline Textarr pull_lever(Textarr cout,bool eats){
+  if ((loc!=13 && loc!=26)|| !(locs[loc].items & LEVER))
+    return cout;
+  locs[loc].items=locs[loc].items ^ LEVER;
+  cout << (eats
+    ? "You bit the lever, and pulled it with your mouth.\n" 
+    : "You pulled the lever.\n")
+    - 4;
+  if(loc==13){
+    locs[loc].up=14;
+    (cout << "A spiral staircase is lowered from the ceiling.\n")-6;
+  }else{
+    locs[loc].down=5;
+    (((cout << "A trapdoor opens up.")-4
+    << "\nThere's a pole going through that you could ride down.") -3
+    << "\nYou don't think you'll be able to climb back up though...\n") -2;
+  }
+  (cout << "The lever disappears.\n") -2;
+  return cout;
+}
+
 ;Textarr do_action(parse_result &action){
     ;Location &location=locs[loc]
     ;word item_bit // In event of undefined behaviour; initialise at zero.
@@ -470,6 +507,8 @@ static void describe(const Location location){
           ;if (((item_bit | (multi_item? item_bit<<1:0)) & location.items)==0){
             cout<<"There is no "<<obj_name<<" on the ground.\n";
             return cout;}
+          if(item_bit==LEVER)
+            return pull_lever(cout,false);
           if (multi_item){
             if (item_uint2(inventory,action.obj-16)==3){
               cout<<"Too many "<<obj_name<<"s are already in your inventory.";
@@ -652,12 +691,16 @@ static void describe(const Location location){
             if (((location.items|inventory) & (item_bit| (check_can_hold_multiple(item_bit)? item_bit<<1:0)))==0){
               cout<<"There is no "<<obj_name<<'.' << '\n';
               return cout;}
+            if(action.obj-16==16)
+              return pull_lever(cout,true);
             bool on_floor=(location.items & item_bit)||(check_can_hold_multiple(item_bit)&&item_uint2(location.items,action.obj-16));
-            cout << "You ate the " << obj_name << '.' << '\n';
             if(hp_enum[action.obj]==0)
               player_hp=0;
+            else
+              cout << item_food[action.obj-16];
             if(player_hp+hp_enum[action.obj]<=(64>=player_hp?64:player_hp))player_hp+=hp_enum[action.obj];
             else if(player_hp<64)player_hp=64;
+            if(player_hp<=0)cout << item_death[action.obj-16];
             if((not check_can_hold_multiple(item_bit))||(item_uint2(on_floor? location.items:inventory,action.obj-16)%2)){
               if(on_floor){location.items=location.items^item_bit;}
               else{inventory=inventory^item_bit;}}
@@ -676,6 +719,8 @@ static void describe(const Location location){
             cout<<obj_name<<" is not an item.\n";
             return cout;}
           item_bit=1<<(action.obj-16);
+          if(item_bit==LEVER && (item_bit & location.items))
+            return pull_lever(cout,false);
           if((item_bit & inventory)==0){
             cout<<"You don't have any "<<obj_name<<'.' << '\n';
             return cout;}

@@ -255,11 +255,11 @@ def make_text_arr(arr:tuple,name:str)->str:
   if is_2d:
     for i in arr:
       for j in i:
-        out+=("{.arr={\""+"\",\"\\n".join((k[0])if not "…"in k[0] else(k[0].split("…",1)[0]+"\",\".\",\".\",\"."+(("\",\""+k[0].split("…",1)[1])if len(k[0].split("…",1)[1])>0 else""))for k in j)+"\"}, .sleeps={"+",".join(str(k[1])if not "…"in k[0] else((str(k[1]//2)+",")*(4 if len(k[0].split("…",1)[1])>0 else 3)+str(k[1]))for k in j)+"}}")if len(j)>0 else("{0},")
+        out+=("{.arr={\""+"\",\"\\n".join((k[0])if not "…"in k[0] else(k[0].split("…",1)[0]+"\",\".\",\".\",\"."+(("\",\""+k[0].split("…",1)[1])if len(k[0].split("…",1)[1])>0 else""))for k in j)+"\\n\"}, .sleeps={"+",".join(str(k[1])if not "…"in k[0] else((str(k[1]//2)+",")*(4 if len(k[0].split("…",1)[1])>0 else 3)+str(k[1]))for k in j)+"}}")if len(j)>0 else("{0},")
       out+="},\n{"
     return out[:-2]+"};"
   else:
-    for i in arr:out+=(("{.arr={\""+"\",\"\\n".join((k[0])if not "…"in k[0] else(k[0].split("…",1)[0]+"\",\".\",\".\",\"."+(("\",\""+k[0].split("…",1)[1])if len(k[0].split("…",1)[1])>0 else""))for k in i)+"\"}, .sleeps={"+",".join(str(k[1])if not "…"in k[0] else((str(k[1]//2)+",")*(4 if len(k[0].split("…",1)[1])>0 else 3)+str(k[1]))for k in i)+"}},\n")if len(i)>0 else("{0},\n"))
+    for i in arr:out+=(("{.arr={\""+"\",\"\\n".join((k[0])if not "…"in k[0] else(k[0].split("…",1)[0]+"\",\".\",\".\",\"."+(("\",\""+k[0].split("…",1)[1])if len(k[0].split("…",1)[1])>0 else""))for k in i)+"\\n\"}, .sleeps={"+",".join(str(k[1])if not "…"in k[0] else((str(k[1]//2)+",")*(4 if len(k[0].split("…",1)[1])>0 else 3)+str(k[1]))for k in i)+"}},\n")if len(i)>0 else("{0},\n"))
     return out[:-2]+"};"
 
 item_info=parse_mkdown(item_info)
