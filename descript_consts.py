@@ -4,7 +4,7 @@ item_info=("It looks like a toy sword, but you probably have the strength to use
 "A common magic potion for healing.",
 "Multiple health potions!",
 "A cushioned wooden chair.",
-"A loose staircase that looks like it previously led up to the broken door.\nMaybe you could DROP it somewhere else?",
+"A loose staircase that looks like it previously led up to the broken door.\nMaybe you could *DROP* it somewhere else?",
 "A kitchen knife.\nYou could easily use this as a simple weapon.",
 "This is it!\nYou're not quite sure how to open it, but maybe someone back at your village might know.\nIf you could JUST take this resturant back... surely you would be able to feed not just your family, but your whole village!",
 "The remains of a body.\nYou don't think it would be a good idea to eat this.",
@@ -14,6 +14,41 @@ item_info=("It looks like a toy sword, but you probably have the strength to use
 "This thing seems like it represents a value far greater than what your village is used to seeing.",
 "A maid's brush.",
 "You think you can pull this lever.")
+
+item_food=(
+(("You ate the wood sword?",2),("Why?",4),("You now have a wooden sword protruding out the back of your neck...",4),("What did you think was going to happen?",3)),
+(("You swallowed the apple.",3),("You immediately healed 3HP.",3),("Finally having somthing to eat feels amazing!",2)),
+(),
+(("You ate *(%2Adrank)* the health potion.",4),("You healed 12HP.",2)),
+(),
+(("You swallowed the chair.",1),("Your oesophagus is unnaturally contorted to fit it.",6),("The chair is stuck in your throat!",4),("You feel the chair compress and break inside you as you struggle for air!",10),("You don't feel well…",24),("But that cushion was nice!",1),("You healed 1HP!",1)),
+(),
+(("You swallowed the knife.",6),("You feel yourself bleeding inside.",4)),
+(),
+(("You managed to eat the bone…",4),("You felt it's shards cut your flesh as it went down.",4),("You didn't think it was a good idea to eat that…",4)),
+(("You forced the old, rusty sword into your throat.",20),("It tastes disgusting.",8),("You shudder at the thought of what might of touched this.",8),("You feel sick.",42)),
+(("You swallow the sword.",3),("It cuts through your throat like paper.",12),("The sword is protruding out of the back of your neck.",16),("Breathing and speaking is more difficult now.",16)),
+(),
+(),
+(("You ate the brush.",3),("Its bristles prickle your stomach.",3),("You immediately regret eating that.",6)))
+
+item_death=(
+(("You try to remove the sword, but it only makes things worse…",6),("r<Blood> gushes out of your neck, and down your body.",6),("You collapse.",6),("You try to think of your family, but it only makes you dread the fact that they will be left to starve without you.",8),("You don't think you can survive this.",8),("You don't think ... anymore...",8)),
+(),
+(),
+(),
+(),
+(),
+(("You eat the staircase.",8),("You struggle to eat the staircase.",8),("Even after the first step; your mouth bleeds from being cut by broken bits of staircase.",6),("Debris fills your stomach. The pain is unbearable.",2),("All you can do to distract yourself from the pain is to continue to chew the staircase.",12),("You cough.",4),("Somthing gets stuck in your throat as you try to cough.",6),("You can't breath anymore.",8),("It seems your last breath is in your past now.",14),("You try to reminisce about when you were able to breath, but you fail to do so as your consciousness fades.",16)),
+(("You choke; trying desprately to expel the knife.",4),("… but only blood comes out.",8),("You feel faint.",8),("This doesn't feel real.",8),("You miss your family.",8),("You collapse.",8)),
+(("You eat the resturant.",8),("Your teeth break as you try to chew on brick.",3),("Your mouth and throat are cut as glass shatters inside of you.",8),("You are filed with regret.",4),("Someone could have used that resturant to feed your village, but now, you've ruined it!",20),("… and in doing so, you've ruined yourself.",8),("You bleed out.",3)),
+(("You *really* didn't think it was a good idea to eat that...",7),("You feel sick and dizzy…",7),("You **KNOW** it was never a good idea to do that!",8),("You begin to choke.",6),("It **R<definitely** wasn't a good idea to eat that.",2),("You realise that dr<blood> is dripping from your mouth.",2),("You collapse on the floor...",2),("You begin to struggle for air.",2),("You can't think straight",2),("You continue to struggle for air.",2),("You can't think straight",2),("You suddenly realise you are struggling for air.",2),("You can't think straight",2),("You can't *see* anymore.",2),("You can't think straight",2),("Your consciousness fades.",2),("You can't think straight",2)),
+(("The rust feels uncomfortable against your skin.",8),("You feel like you are going to vomit.",40),("Your body is trying to vomit, but the **rusted sword** is blocking it.",8),("It seems your last breath is in your past now.",14),("You regret not being able to help your village.",16),("You regret not being able to help your family.",16),("You thrash about in a panic as you struggle for air.",12)),
+(("You feel like you are going to vomit.",48),("Your body is trying to vomit, but the **normal sword** is blocking it.",8),("It seems your last breath is in your past now.",14),("You regret not being able to help your village.",16),("You regret not being able to help your family.",16),("You thrash about in a panic as you struggle for air.",12)),
+(("Uhh… ok?",4),("You decapitate yourself.",3)),
+(("You draw your final breath and swallow the coin.",8),("You can't breath anymore.",24),("You miss being able to breath.",24)),
+(("You feel faint.",8),("You feel sick.",8),("Your body tries to vomit.",2),("Only blood comes out.",2),("You try to steady your breathing.",2),("Your throat is blocked by blood.",2),("You try to clear your throat.",2),("Only blood comes out.",2),("You try to steady your breathing.",2),("Your throat is blocked by blood.",2),("You try to clear your throat.",2),("Only blood comes out.",2),("You try to steady your breathing.",2),("Your throat is blocked by blood.",2),("You try to clear your throat.",2),("Only blood comes out.",2),("You try to steady your breathing.",2),("Your throat is blocked by blood.",2),("You try to clear your throat.",2),("Only blood comes out.",2),("You try to steady your breathing.",2),("Your throat is blocked by blood.",2),("You faint.",2)),
+)
 
 item_dmg=(
   3,
@@ -38,7 +73,7 @@ npc_speech=(("The maid is cleaning the corridor.\n\"Can I help you?\"",
 "The maid isn't cleaning the corridor anymore.\n\"Owowowowowowowowowowwwwwwwww!\nOk ok okokokokok.\nPlease... please just kill me...\nI can't live like this.\"",
 "The maid has gone back to cleaning the corridor.\n\"It still hurts...\nWhat was all that for?\"",
 "The maid isn't cleaning the corridor anymore.\n\"Owch!\nYou win ok!\nStop eating me!\"",
-"The maid is crying now.\n\"Owowowowowowowowowowwwwwwwww!\nOk ok. Just finish me off.\"\nThe maid tries to smile through the tears.\n\"...I'm ... glad you liked me...\"",
+"The maid is crying now.\n\"Owwww ow ow ow owwwwwwwww!\nOk ok. Just finish me off.\"\nThe maid tries to smile through the tears.\n\"...I'm ... glad you liked me...\"",
 "The maid is cleaning the corridor.\n\"Is that a restaurant in your pocket?\n♡ Or are you just happy to see me? ♡\"",
 "The maid is fast asleep.",
 "\"Oh. Was that my boss?\""),
@@ -159,7 +194,7 @@ def format_str(inp:str) -> str:
   "Highlight npc names so that the player knows they can type them as part of a valid command."
   for i in ('maid', 'viscount', 'orc', 'chef', 'human', 'tree', 'family member', 'メイド', '子爵', '鬼', 'コック', '人間', '木', '家の人', 'guard', '守衛'):
     if i in inp:
-      inp=inp.replace(i,"\033[1m"+i+"\033[0m",1)
+      inp=inp.replace(i,"\\033[1m"+i+"\\033[0m",1)
       break
   return inp
 
@@ -171,29 +206,32 @@ def parse_npc_objs(itera) -> tuple:
 
 def parse_mkdown(itera) -> tuple:
   "Very basic custom markdown parsing, expects opening markdown to follow a space."
+  if len(itera[0])==2 and all(isinstance(i[0],str)and isinstance(i[1],int)for i in itera):
+    strs=parse_mkdown([i[0]for i in itera])
+    return *((strs[i],itera[i][1])for i in range(len(strs))),
   if any(not isinstance(i,str)for i in itera):
-    return *(parse_mkdown(i)for i in itera),
+    return *((parse_mkdown(i)if len(i)>0 else ())for i in itera),
   else:return *(i.\
-    replace(" **"," \033[1m").# Bold
-    replace(" *"," \033[3m").#  Italic
-    replace("\n**"," \033[1m").# Bold
-    replace("\n*"," \033[3m").#  Italic
-    replace("**","\033[0m").#   Close formatting
-    replace("*","\033[0m").#    Close formatting
-    replace(">","\033[0m").#    Close formatting
-    replace("dr<","\033[31;107m").# Dark red
-    replace("r<","\033[91;40m").#   Red
-    replace("R<","\033[30;101m").#  Red background
-    replace("g<","\033[92;40m").#   Green
-    replace("G<","\033[30;102m").#  Green background
-    replace("y<","\033[93;40m").#   Yellow
-    replace("Y<","\033[30;103m").#  Yellow background
-    replace("b<","\033[94;40m").#   Blue
-    replace("B<","\033[30;104m").#  Blue background
-    replace("m<","\033[95;40m").#   Magenta
-    replace("M<","\033[30;105m").#  Magenta background
-    replace("c<","\033[96;40m").#   Cyan
-    replace("C<","\033[30;106m").#   Cyan background
+    replace(" **"," \\033[1m").# Bold
+    replace(" *"," \\033[3m").#  Italic
+    replace("\n**"," \\033[1m").# Bold
+    replace("\n*"," \\033[3m").#  Italic
+    replace("**","\\033[0m").#   Close formatting
+    replace("*","\\033[0m").#    Close formatting
+    replace(">","\\033[0m").#    Close formatting
+    replace("dr<","\\033[31;107m").# Dark red
+    replace("r<","\\033[91;40m").#   Red
+    replace("R<","\\033[30;101m").#  Red background
+    replace("g<","\\033[92;40m").#   Green
+    replace("G<","\\033[30;102m").#  Green background
+    replace("y<","\\033[93;40m").#   Yellow
+    replace("Y<","\\033[30;103m").#  Yellow background
+    replace("b<","\\033[94;40m").#   Blue
+    replace("B<","\\033[30;104m").#  Blue background
+    replace("m<","\\033[95;40m").#   Magenta
+    replace("M<","\\033[30;105m").#  Magenta background
+    replace("c<","\\033[96;40m").#   Cyan
+    replace("C<","\\033[30;106m").#   Cyan background
     replace("%2A","*") # Unescape literal *.
     for i in itera),
 
@@ -204,15 +242,29 @@ def make_c_arr(arr:tuple,name:str)->str:
   if is_2d:
     for i in arr:
       for j in i:
-        out+=("\""+j.replace("\n","\\n").replace("\"","\\\"")+"\",\n").replace("\033","\\033")if len(j)>0 else("{0},")
+        out+=("\""+j.replace("\n","\\n").replace("\"","\\\"")+"\",\n")if len(j)>0 else("{0},")
       out+="},{"
     return out[:-3]+"}};"
   else:
-    for i in arr:out+=("\""+i.replace("\n","\\n").replace("\"","\\\"").replace("\033","\\033")+"\",\n")if len(i)>0 else("{0},\n")
+    for i in arr:out+=("\""+i.replace("\n","\\n").replace("\"","\\\"")+"\",\n")if len(i)>0 else("{0},\n")
     return out[:-2]+"};"
 
+def make_text_arr(arr:tuple,name:str)->str:
+  is_2d=not any(isinstance(i[0][0],str)for i in arr)
+  out=("const Textarr "+name+"["+str(len(arr))+"]["+str(len(arr[0]))+"] = {{\n")if is_2d else("const Textarr "+name+"["+str(len(arr))+"] = {\n")
+  if is_2d:
+    for i in arr:
+      for j in i:
+        out+=("{.arr={\""+"\",\"\\n".join((k[0])if not "…"in k[0] else(k[0].split("…",1)[0]+"\",\".\",\".\",\"."+(("\",\""+k[0].split("…",1)[1])if len(k[0].split("…",1)[1])>0 else""))for k in j)+"\"}, .sleeps={"+",".join(str(k[1])if not "…"in k[0] else((str(k[1]//2)+",")*(4 if len(k[0].split("…",1)[1])>0 else 3)+str(k[1]))for k in j)+"}}")if len(j)>0 else("{0},")
+      out+="},\n{"
+    return out[:-2]+"};"
+  else:
+    for i in arr:out+=(("{.arr={\""+"\",\"\\n".join((k[0])if not "…"in k[0] else(k[0].split("…",1)[0]+"\",\".\",\".\",\"."+(("\",\""+k[0].split("…",1)[1])if len(k[0].split("…",1)[1])>0 else""))for k in i)+"\"}, .sleeps={"+",".join(str(k[1])if not "…"in k[0] else((str(k[1]//2)+",")*(4 if len(k[0].split("…",1)[1])>0 else 3)+str(k[1]))for k in i)+"}},\n")if len(i)>0 else("{0},\n"))
+    return out[:-2]+"};"
 
 item_info=parse_mkdown(item_info)
+item_food=parse_mkdown(item_food)
+item_death=parse_mkdown(item_death)
 npc_speech=parse_mkdown(npc_speech)
 npc_info=parse_npc_objs(parse_mkdown(npc_info))
 
@@ -220,6 +272,10 @@ if __name__=="__main__":
   print(make_c_arr(item_info,"item_info"))
   print("\n")
   print("const float item_dmg[16]={",*(str(i)+","for i in item_dmg),"};\n")
+  print(make_text_arr(item_food,"item_food"))
+  print("\n")
+  print(make_text_arr(item_death,"item_death"))
+  print("\n")
   print(make_c_arr(npc_speech,"npc_speech"))
   print("\n")
   print(make_c_arr(npc_info,"npc_info"))

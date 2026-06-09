@@ -17,7 +17,7 @@ NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
 full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())+\
 tuple(jp_npc_enum.values())+("北","東","南","西","上","下","左","右")+tuple(jp_item_enum.values())+tuple(jp_item_enum_2.values())
 hp_enum=(48,6,12,4,40,52,-48,2)+(0,)*8+(\
--64,3,0,12,0,1,0,-64,0,-2,-96,-128,0,0,-1,0)
+-56,3,0,12,0,1,0,-60,0,-2,-72,-96,0,0,-1,0)
 
 #Type enum
 ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE,BASEMENT,TREASURY,DINETTE,ART_ROOM,CAVE,HALL=0,1,2,3,4,5,6,7,8,9,10,11,12,13
