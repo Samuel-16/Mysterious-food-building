@@ -105,7 +105,7 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 }
 
 ;const char type_enum[28][11]=
-{"room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall"
+{"room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall",
  "部屋", "開墾",     "廊下",    "刑務所", "寝室",    "公判廷",    "森",    "村",      "地下室",   "金庫",    "食堂",    "美術室",   "空洞", "会館"}
 #define type_enum_size ((sizeof(type_enum)/sizeof(type_enum[0]))/2)
 
@@ -121,7 +121,8 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     HELP,
     QUIT,
     RESET,
-    GAME_OVER
+    GAME_OVER,
+    HUMAN_CONVERSATION,
 }
 
 ;const char command_enum[42][6]=
@@ -207,6 +208,7 @@ static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
   return inp;
 }
 
+;byte flags=0
 ;byte loc=4
 ;word inventory=HEALTH_POTION
 ;signed int player_hp=12
@@ -219,12 +221,16 @@ static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
 #define npc_uint2(n,loc) (((((n)%256)&(1<<(loc)))?1:0)|((((n)>>8)&(1<<(loc)))?2:0)) // Isolate a bit in two adjacent bytes to make a 2-bit integer.
 #define check_can_hold_multiple(arr) ((arr)&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS)) // Check if an item can be stacked.
 #define ran() ((double)rand())/((double)RAND_MAX) // Generate a random float.
+#define HUMAN_EATEN_BY_ORC (flags & 1)
+#define VISCOUNT_MOVED     (flags & 2)
+#define HUMAN_CHECKED      (flags & 4)
+#define HUMAN_FREE         (flags & 8)
 
 ;Npc npcs[]={
   {.inventory=BRUSH}, // Maid
-  {.inventory=NORMAL_SWORD|COIN,.hp=48,.maxhp=48,.avo=0.125,.threshold=1}, // Guard
+  {.inventory=NORMAL_SWORD|COIN,.hp=18,.maxhp=18,.avo=0.125,.threshold=1}, // Guard
   {.inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,.hp=128,.maxhp=136,.avo=0.25,.threshold=0}, // Viscount
-  {.inventory=NORMAL_SWORD|HEALTH_POTION,.hp=64,.maxhp=64,.avo=0.0625}, // Orc
+  {.inventory=NORMAL_SWORD|HEALTH_POTION,.hp=30,.maxhp=30,.avo=0.0625}, // Orc
   {.inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,.hp=72,.maxhp=96,.avo=0.1875,.threshold=0}, // Chef
   {.inventory=0,.avo=0.25}, // Human
   {.inventory=APPLES|APPLE,.hp=24,.maxhp=24,.avo=0.03125,.threshold=1}, // Tree
@@ -357,12 +363,100 @@ There is an entrance from the west; covered by some kind of banner, which is too
     ;return out
 ;}
 
+;[[nodiscard]]
+static inline Textarr check_orc(Textarr cout){
+  if(npc_uint2(eaten_npcs,3)==0){
+    if(locs[8].items & CHAIR && !(npcs[3].inventory & CHAIR)){
+      npcs[3].inventory=npcs[3].inventory^CHAIR;
+      locs[8].items=locs[8].items^CHAIR;
+      (cout << "\"\033[92;40mOohhh a chair!\033[0m\"\n")-5;
+      (cout << "The orc sat down.\n")-2;
+      (cout << "\"\033[92;40mThanks man!\033[0m\"\n")-5;
+    }
+    if(locs[8].items & COIN && !(npcs[3].inventory & COIN)){
+      npcs[3].inventory=npcs[3].inventory^COIN;
+      locs[8].items=locs[8].items^COIN;
+      (cout << "\"\033[92;40mOohhh a coin!\033[0m\"\n")-5;
+      (cout << "The orc took the coin.\n")-2;
+      (cout << "\"\033[92;40mThanks man!\033[0m\"\n")-5;
+  }}
+  if((npc_uint2(eaten_npcs,3)>0 || npcs[3].hp<=0 || npcs[3].inventory & (CHAIR | COIN))&& locs[8].east==0){
+    locs[8].east=11;
+    cout << "The \033[1meastern\033[0m room is now open.\n";
+  }
+  if((npc_uint2(eaten_npcs,3)>=3)&& locs[8].north==0){
+    (((cout
+    << "There is a key in the viscera.\n") - 5)
+    << "You pick up the key.\n") - 6;
+    goto unlock;
+  }
+  if((npcs[3].hp<=0)&& locs[8].north==0){
+    (((cout
+    << "The orc dropped a key.\n") - 5)
+    << "You pick up the key.\n") - 6;
+    goto unlock;
+  }
+  if(((npcs[3].inventory & (CHAIR | COIN))==(CHAIR | COIN))&& locs[8].north==0){
+    ((cout
+    << "The orc gave you a key.\n") - 5);
+    goto unlock;
+  }
+  return cout;
+
+  unlock:
+  (((((cout
+  << "You used the key to unlock the prison cell in the north.\n") -6)
+  << "The door opened. The \033[1mhuman\033[0m is free!\n") -6)
+  << "The key disapeared.\n")-6
+  ;locs[8].north=12
+  ;return cout;
+}
+
+static inline byte check_speech(byte npc_no){
+  if(npc_uint2(eaten_npcs,npc_no)!=0 || npc_no==2 || npc_no==4 || npc_no==6 || npc_no==7)
+    return 0;
+  switch(npc_no){
+    case 0:
+      if(locs[13].up==0)
+        return 0;
+      if(VISCOUNT_MOVED && npcs[2].hp<=0)
+        return 8;
+      if(inventory & STAIRCASE)
+        return 6;
+      return 7;
+    case 1:
+      if(inventory & STAIRCASE)
+        return 6;
+      if((locs[5].items & STAIRCASE)==0)
+        return 7;
+      if(locs[13].up!=0)
+        return 8;
+      return 0;
+    case 3:
+      if(HUMAN_EATEN_BY_ORC)
+        return 7;
+      if(npcs[3].inventory & CHAIR)
+        return 8;
+      if(npcs[3].inventory & COIN)
+        return 6;
+      return 0;
+    case 5:
+      if(loc!=12){
+        if(HUMAN_EATEN_BY_ORC)
+          return 6;
+        return 7;}
+      return 0;
+  }
+  return 0;
+}
+
+[[nodiscard]]
 static Textarr describe(const Location location, Textarr cout){
   cout 
   << "You are in a " << type_enum[locs[loc].type]
   << '.' << '\n'
-  << locs[loc].description << '\n';
-  if (location.items & ~LEVER){
+  << locs[loc].description << '\n'
+  ;if (location.items & ~LEVER){
     cout << "\nOn the floor, there is:\n";
     for (int i=0;i<15;i++)
       if (location.items & 1<<i)cout
@@ -372,9 +466,10 @@ static Textarr describe(const Location location, Textarr cout){
   for(ibyte i=0;i<8;i++)
     if(1<<i & location.npcs)
       cout
-      << npc_info[i][npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)]
-      << '\n';
-  if (location.north>0)
+      << npc_info[i][check_speech(i) && npc_info[i][check_speech(i)]!=nullptr? check_speech(i):
+         npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)]
+      << '\n'
+  ;if (location.north>0)
     cout << "NORTH: ->"
     << type_enum[locs[location.north].type]
     << '\n';
@@ -400,13 +495,16 @@ static Textarr describe(const Location location, Textarr cout){
     << '\n';
   return cout;}
 
+static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp);
+
+// Version of the main `describe` function that creates a new `Textarr` and immediately prints it.
 static void describe(const Location location){
   char buff[24]={0};
   Textarr cout=describe(location,{.varStrEnd=buff});
-  for(ibyte i=0;i<cout.end;i++)
-    std::cout << cout.arr[i];
+  std::cout << cout;
 }
 
+[[nodiscard]]
 static inline Textarr pull_lever(Textarr cout,bool eats){
   if ((loc!=13 && loc!=26)|| !(locs[loc].items & LEVER))
     return cout;
@@ -497,6 +595,26 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
               return cout;
           }
           ;cout=describe(locs[loc],cout)
+          ;if(loc==12 && !HUMAN_CHECKED){
+            flags=flags|4; // Effectively `HUMAN_CHECKED=true;`
+            action.com=HUMAN_CONVERSATION;
+            return cout;}
+          ;if(loc==13 && (CHEF & locs[13].npcs) && npcs[4].hp>0){
+            cout << "The \033[1mchef\033[0m attacks.\n";
+            fighting=&npcs[4];}
+          ;if(loc==3 && (inventory & RESTAURANT) && npcs[2].hp>0){
+            (((((((((((((cout
+            << "YOU!!!\n") - 6)
+            << "That was my \033[1mdaughter's\033[0m restaurant!\n") - 3)
+            << "And you \033[1mtook\033[0m it!") - 5)
+            << "YOU") -2)
+            << " WILL") -2)
+            << " \033[1mPAY!\033[0m\n") -4)
+            << "The \033[1mviscount\033[0m attacks.\n") -2
+            ;if(!(locs[3].npcs & VISCOUNT)){
+              locs[18].npcs=0;
+              locs[3].npcs=locs[3].npcs | VISCOUNT;}
+            ;fighting=&npcs[2];}
           ;break;
         case GET:
           if(action.obj<16){
@@ -565,6 +683,7 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
             assert(item_uint2(inventory,action.obj-16)==1);}
           ;cout<<"The "<<obj_name<<" landed on the floor.\n"
           ;if(fighting) cout=counter(fighting,npc_name,cout);
+          else if(loc==8) cout=check_orc(cout);
           break;
         case FIGHT:
           if(action.obj>=8){
@@ -600,7 +719,8 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
               cout << "They have "<<fighting->hp<<" hp.\n";}
             else
               cout
-              << npc_speech[action.obj][npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)]
+              << npc_speech[action.obj][check_speech(action.obj)? check_speech(action.obj):
+                 npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)]
               << '\n';}
           else if(action.obj<16){
             item_bit=0; // This variable will be used differently on this path. It will be treated like a bool.
@@ -656,6 +776,8 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
               ;eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
               ;npcs[action.obj].hp=npcs[action.obj].hp>>1
               ;cout << "You ate the " << obj_name << '.' << '\n'
+              ;if(fighting==&npcs[3])
+                cout=check_orc(cout);
             ;}else if(fighting!=&npcs[action.obj]){
               ;cout << "The "<<obj_name<<" defended themselves!\n"
               ;fighting=&npcs[action.obj]
@@ -667,6 +789,8 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
               location.items=location.items | npcs[action.obj].inventory | (item_bit!=TREE? BONE:0);
               if(fighting==&npcs[action.obj]){
                 cout << "You win!!!\n";
+                if(fighting==&npcs[3])
+                  cout=check_orc(cout);
                 fighting=nullptr;}}
             if(fighting==&npcs[action.obj]){
               double roll=ran();
@@ -681,6 +805,8 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
               if(fighting->hp<=1){
                 fighting->hp=0;
                 cout << "You win!!!\n";
+                if(fighting==&npcs[3])
+                  cout=check_orc(cout);
                 fighting=nullptr;}}
             }
           else if(action.obj<16){
@@ -742,6 +868,8 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
             ;cout << "You delt "<<atk<<" damage!\n"
             ;if(fighting->hp<=0){
               cout << "You win!!!\n";
+              if(fighting==&npcs[3])
+                cout=check_orc(cout);
               fighting=nullptr;
               return cout;}}
           else if(roll>=0.05)cout << "The "<<npc_name<<" dodged.\n";
@@ -749,10 +877,27 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
           cout=counter(fighting,npc_name,cout);
           break;
     }
+  if(loc==8)
+    cout=check_orc(cout);
   if(player_hp<=0){
     cout << "GAME OVER!!!\n";
     action.com=GAME_OVER;}
   return cout;}
+
+[[nodiscard]]
+Textarr FreeHuman(char buff[]){
+  Textarr cout={.varStrEnd=buff}
+  ;(((((
+  cout << human_speech[1])-16)
+  << human_speech[4])-32)
+  << human_speech[2])-3
+  ;locs[12].npcs=0
+  ;if(npcs[3].inventory & CHAIR || eaten_npcs & (ORC | ORC<<8))
+    flags=flags|8;
+  else
+    flags=flags|1;
+  return cout;
+}
 
 static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
   assert(npc_name!=nullptr);
@@ -774,6 +919,11 @@ static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
   return cout;
 }
 
+static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
+  for(ibyte i=0;i<outp.end;++i)
+    inp << outp.arr[i];
+  return inp;}
+
 ;int main() {
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
     << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
@@ -787,8 +937,21 @@ static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
         ;Textarr text = do_action(action)
-        ;for(ibyte i=0;i<text.end;i++)
-          std::cout << text.arr[i];
+        ;std::cout<<text
         ;clearOutBuff()
+        ;if(action.com==HUMAN_CONVERSATION){
+          ;bool check=true
+          ;std::cout<<human_speech[0]<<"[Y/n] "
+          ;std::cin.getline(input_buffer,255)
+          ;for(ibyte i=0;input_buffer[i]!='\0'&&i<255;++i){
+            if((input_buffer[i] &223)=='N'){
+              check=false;
+              break;}}
+          if(check){
+            ;text=FreeHuman(outBuff)
+            ;std::cout << text
+            ;clearOutBuff()
+          ;}  
+        ;}
     ;}
 ;}
