@@ -135,8 +135,9 @@ The breeze feels nice."""), # 6
     """Sunlight creeps through between the floorboards above.
 The stone floor seems to creak, and the sound of dripping water echoes from the east."""), # 7
   Location(type_=ROOM,south=9,west=7,npcs=ORC,description=\
-    """The room feels oppressive."""), # 8
-  Location(type_=CAVE,items=RUSTED_SWORD,north=8,west=10,description=\
+    """The room feels oppressive.
+There is a human trapped in a cell to the north."""), # 8
+  Location(type_=CAVE,items=RUSTED_SWORD,north=8,east=27,west=10,description=\
     """Stone surrounds you."""), # 9
   Location(type_=FOREST,north=2,east=9,items=APPLES,description=\
     """You stand at the entrance to a cave.
@@ -181,6 +182,8 @@ There is an entrance from the west; covered by some kind of banner, which is too
     """An inviting hall, clearly intended to welcome guests into this place which you now suspect to be some kind of manor."""), # 25
   Location(type_=ART_ROOM,items=LEVER,south=25,description=\
     """The room seems well used as an exit, but dusty paintings hang on dusty walls."""), # 26
+  Location(type_=CAVE,west=9,description=\
+    """At the cave's end, there is a warm cake on a table-like ledge."""), # 27
 ]
 
 def check_can_hold_multiple(arr:int):

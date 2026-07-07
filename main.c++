@@ -214,6 +214,8 @@ static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
 ;signed int player_hp=12
 ;word eaten_items=0
 ;word eaten_npcs=0
+;const byte cakemax[]={74,47}
+;byte cakelife[]={74,47}
 ;Npc* fighting=nullptr
 ;static Textarr counter(Npc* npc,const char* npc_name,Textarr cout)
 
@@ -229,9 +231,9 @@ static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
 ;Npc npcs[]={
   {.inventory=BRUSH}, // Maid
   {.inventory=NORMAL_SWORD|COIN,.hp=18,.maxhp=18,.avo=0.125,.threshold=1}, // Guard
-  {.inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,.hp=128,.maxhp=136,.avo=0.25,.threshold=0}, // Viscount
+  {.inventory=STEEL_SWORD|KNIFE|COIN|TWO_HEALTH_POTIONS,.hp=128,.maxhp=128,.avo=0.25,.threshold=0}, // Viscount
   {.inventory=NORMAL_SWORD|HEALTH_POTION,.hp=30,.maxhp=30,.avo=0.0625}, // Orc
-  {.inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,.hp=72,.maxhp=96,.avo=0.1875,.threshold=0}, // Chef
+  {.inventory=NORMAL_SWORD|APPLE|APPLES|HEALTH_POTION,.hp=52,.maxhp=52,.avo=0.1875,.threshold=0}, // Chef
   {.inventory=0,.avo=0.25}, // Human
   {.inventory=APPLES|APPLE,.hp=24,.maxhp=24,.avo=0.03125,.threshold=1}, // Tree
   Npc() // Family Member
@@ -259,8 +261,9 @@ The breeze feels nice.)"},
     R"(Sunlight creeps through between the floorboards above.
 The stone floor seems to creak, and the sound of dripping water echoes from the east.)"},
   {.type=ROOM,.south=9,.west=7,.npcs=ORC,.description=
-    R"(The room feels oppressive.)"},
-  {.type=CAVE,.north=8,.west=10,.items=RUSTED_SWORD,.description=
+    R"(The room feels oppressive.
+There is a human trapped in a cell to the north.)"},
+  {.type=CAVE,.north=8,.east=27,.west=10,.items=RUSTED_SWORD,.description=
     R"(Stone surrounds you.)"},
   {.type=FOREST,.north=2,.east=9,.items=APPLES,.description=
     R"(You stand at the entrance to a cave.
@@ -270,7 +273,7 @@ If you were to leave, you don't think you could find your way back here easily t
     R"(Much of the room is foul.
 There is a seemingly blocked toilet in the corner.
 The rest of the place is lavish with plenty of tools that you can't identify.)"},
-  {.type=PRISON,.east=13,.south=8,.npcs=HUMAN,.description=
+  {.type=PRISON,.east=13,.south=8,.npcs=HUMAN,.items=APPLE*3+HEALTH_POTION,.description=
     R"(There are chains and bars.)"},
   {.type=HALL,.npcs=CHEF,.items=RESTAURANT+LEVER,.description=
     R"(The tension is high in this grand hall.
@@ -289,7 +292,8 @@ There's stuff here that you can't see, let alone identify.)"},
   {.type=COURTROOM,.east=14,.south=17,.npcs=VISCOUNT,.description=
     R"(Soft sunlight shines into this grand courtroom.)"},
   {.type=ROOM,.north=17,.down=24,.description=
-    R"(The room seems intended for fast access to the bedroom below.)"},
+    R"(There is a hole in the floor.
+The room seems intended for fast access to the bedroom below.)"},
   {.type=BEDROOM,.south=21,.west=14,.description=
     R"(Light shines through a window onto a four poster bed.)"},
   {.type=DINETTE,.north=20,.south=22,.description=
@@ -304,7 +308,9 @@ There is an entrance from the west; covered by some kind of banner, which is too
   {.type=HALL,.north=26,.east=24,.description=
     R"(An inviting hall, clearly intended to welcome guests into this place which you now suspect to be some kind of manor.)"},
   {.type=ART_ROOM,.south=25,.items=LEVER,.description=
-    R"(The room seems well used as an exit, but dusty paintings hang on dusty walls.)"}}
+    R"(The room seems well used as an exit, but dusty paintings hang on dusty walls.)"},
+  {.type=CAVE,.west=9,.description=
+    R"(At the cave's end, there is a warm cake on a table-like ledge.)"},}
 
 ;static std::int_least8_t parse_com_check(const char** arr,int arr_size){
     for (ibyte i=0;i<arr_size;i++){
@@ -409,6 +415,7 @@ static inline Textarr check_orc(Textarr cout){
   << "The door opened. The \033[1mhuman\033[0m is free!\n") -6)
   << "The key disapeared.\n")-6
   ;locs[8].north=12
+  ;locs[8].description="The room feels slightly less oppressive now."
   ;return cout;
 }
 
@@ -509,20 +516,41 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
   if ((loc!=13 && loc!=26)|| !(locs[loc].items & LEVER))
     return cout;
   locs[loc].items=locs[loc].items ^ LEVER;
-  cout << (eats
+  (cout << (eats
     ? "You bit the lever, and pulled it with your mouth.\n" 
-    : "You pulled the lever.\n")
+    : "You pulled the lever.\n"))
     - 4;
   if(loc==13){
     locs[loc].up=14;
-    (cout << "A spiral staircase is lowered from the ceiling.\n")-6;
+    (cout << "A spiral staircase is lowered from the ceiling.\nYou can now go \033[1mup\033[0m.\n")-6;
   }else{
     locs[loc].down=5;
     (((cout << "A trapdoor opens up.")-4
-    << "\nThere's a pole going through that you could ride down.") -3
+    << "\nThere's a pole going through that you could ride \033[1mdown\033[0m.") -3
     << "\nYou don't think you'll be able to climb back up though...\n") -2;
   }
   (cout << "The lever disappears.\n") -2;
+  return cout;
+}
+
+;[[nodiscard]]
+Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
+  if (cakelife==0){return cout;}
+  if (player_hp>=64){return cout<<"You don't need any cake right now.\n";}
+  cout << "You started eating the cake.";
+  player_hp+=cakelife;
+  if(player_hp>64){
+    cakelife=player_hp-64;
+    player_hp=64;
+    cout<<"You are fully healed!\n"
+    <<(byte)((cakelife*100+cakemax)/cakemax)<<'%'<<" of the cake remains.\n";}
+  else{
+    cakelife=0;
+    cout<<"You finished eating the cake.\n"
+    <<"The cake is gone.\n";
+    if(cakemax==74)
+      locs[27].description="The cake is gone.";
+    }
   return cout;
 }
 
@@ -595,6 +623,7 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
               return cout;
           }
           ;cout=describe(locs[loc],cout)
+          ;if(loc==4 && (inventory&STAIRCASE)){cout<<"You sense there may be somthing more to this room.\n";}
           ;if(loc==12 && !HUMAN_CHECKED){
             flags=flags|4; // Effectively `HUMAN_CHECKED=true;`
             action.com=HUMAN_CONVERSATION;
@@ -602,11 +631,16 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
           ;if(loc==13 && (CHEF & locs[13].npcs) && npcs[4].hp>0){
             cout << "The \033[1mchef\033[0m attacks.\n";
             fighting=&npcs[4];}
+          ;if(loc==27)
+            cout=CakeRoom(cout,cakelife[0],cakemax[0]);
+          ;if(loc==21 && cakelife[1]>0){
+            cout<<"There is cake.\n";
+            cout=CakeRoom(cout,cakelife[1],cakemax[1]);}
           ;if(loc==3 && (inventory & RESTAURANT) && npcs[2].hp>0){
             (((((((((((((cout
             << "YOU!!!\n") - 6)
             << "That was my \033[1mdaughter's\033[0m restaurant!\n") - 3)
-            << "And you \033[1mtook\033[0m it!") - 5)
+            << "And you \033[1mtook\033[0m it!\n") - 5)
             << "YOU") -2)
             << " WILL") -2)
             << " \033[1mPAY!\033[0m\n") -4)
@@ -646,6 +680,8 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
             assert(multi_item);
             assert(item_uint2(inventory,action.obj-16)==2);}
           ;cout<<"You picked up the "<<obj_name<<'.' << '\n'
+          ;if(item_bit==STAIRCASE){cout<<"Maybe you could put this somewhere else?\n";}
+          ;if(item_bit==RESTAURANT && locs[13].up==0){cout<<"???\nThere was a \033[1mlever\033[0m under the restarunt.\n";}
           ;if(fighting) cout=counter(fighting,npc_name,cout);
           break;
         case DROP:
@@ -817,7 +853,7 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
             if (((location.items|inventory) & (item_bit| (check_can_hold_multiple(item_bit)? item_bit<<1:0)))==0){
               cout<<"There is no "<<obj_name<<'.' << '\n';
               return cout;}
-            if(action.obj-16==16)
+            if(action.obj-16==15)
               return pull_lever(cout,true);
             bool on_floor=(location.items & item_bit)||(check_can_hold_multiple(item_bit)&&item_uint2(location.items,action.obj-16));
             if(hp_enum[action.obj]==0)
@@ -926,7 +962,7 @@ static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
 
 ;int main() {
     ;std::cout<<"You are on an adventure to find a source of nourishment, and have entered a strange building you have found in the forest.\n"
-    << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, QUIT, RESET, and HELP.\n\n"
+    << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, SWING, QUIT, RESET, and HELP.\n\n"
     ;describe(locs[loc])
     ;std::cout << "What will you do?\n"
     ;char input_buffer[256]
@@ -952,6 +988,6 @@ static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
             ;std::cout << text
             ;clearOutBuff()
           ;}  
-        ;}
+        action.com=0;}
     ;}
 ;}
