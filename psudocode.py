@@ -17,7 +17,7 @@ NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
 full_enum=tuple(npc_enum.values())+("north","east","south","west","up","down","left","right")+tuple(item_enum.values())+\
 tuple(jp_npc_enum.values())+("北","東","南","西","上","下","左","右")+tuple(jp_item_enum.values())+tuple(jp_item_enum_2.values())
 hp_enum=(48,6,12,4,40,52,-48,2)+(0,)*8+(\
--56,3,0,12,0,1,0,-60,0,-2,-72,-96,0,0,-1,0)
+-56,3,0,16,0,1,0,-60,0,-2,-72,-96,0,0,-1,0)
 
 #Type enum
 ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE,BASEMENT,TREASURY,DINETTE,ART_ROOM,CAVE,HALL=0,1,2,3,4,5,6,7,8,9,10,11,12,13
@@ -94,6 +94,7 @@ cout=out_stream(sys.stdout)
 loc=4
 inventory=HEALTH_POTION
 player_hp=12
+player_hp_max=72
 eaten_items=0
 eaten_npcs=0
 fighting=None
@@ -166,7 +167,8 @@ There's stuff here that you can't see, let alone identify."""), # 16
   Location(type_=COURTROOM,npcs=VISCOUNT,south=17,east=14,description=\
     """Soft sunlight shines into this grand courtroom."""), # 18
   Location(type_=ROOM,north=17,down=24,description=\
-    """The room seems intended for fast access to the bedroom below."""), # 19
+    """There is a hole in the floor.
+The room seems intended for fast access to the bedroom below."""), # 19
   Location(type_=BEDROOM,west=14,south=21,description=\
     """Light shines through a window onto a four poster bed."""), # 20
   Location(type_=DINETTE,north=20,south=22,description=\
@@ -177,13 +179,25 @@ There is an entrance from the west; covered by some kind of banner, which is too
   Location(type_=CORRIDOR,east=22,west=24,description=\
     """Light shines into this long corridor from the south."""), # 23
   Location(type_=BEDROOM,east=23,west=25,description=\
-    """It's a lavish bedroom with an en suite to the south."""), # 24
+    """It's a lavish bedroom with an en suite to the south.
+You would not be able to fit inside the en suite..."""), # 24
   Location(type_=HALL,east=24,north=26,description=\
     """An inviting hall, clearly intended to welcome guests into this place which you now suspect to be some kind of manor."""), # 25
   Location(type_=ART_ROOM,items=LEVER,south=25,description=\
     """The room seems well used as an exit, but dusty paintings hang on dusty walls."""), # 26
   Location(type_=CAVE,west=9,description=\
     """At the cave's end, there is a warm cake on a table-like ledge."""), # 27
+  Location(type_=FOREST,description=\
+    """You are already deep in the forest.
+You don't think you could ever find your way back to that building again."""), #28
+  Location(type_=FOREST,description=\
+    """You have picked up the scent of your village.
+You are beginning to find your way home."""), #29
+  Location(type_=FOREST,description=\
+    """You recognise this place!
+At long last, you are finally almost home!"""), #30
+  Location(type_=VILLAGE,npcs=FAMILY_MEMBER,description=\
+    """You stand at the entrance to your village."""), #31
 ]
 
 def check_can_hold_multiple(arr:int):
@@ -493,8 +507,8 @@ def do_action(action:parse_result):
         cout << "You ate the " << obj_name << ".\n"
         if hp_enum[action.obj]==0:
           player_hp=0
-        elif player_hp+hp_enum[action.obj]<=max(64,player_hp):player_hp+=hp_enum[action.obj]
-        elif player_hp<64:player_hp=64
+        elif player_hp+hp_enum[action.obj]<=max(player_hp_max,player_hp):player_hp+=hp_enum[action.obj]
+        elif player_hp<player_hp_max:player_hp=player_hp_max
         if (not check_can_hold_multiple(item_bit))or(item_uint2(location.items if on_floor else inventory,action.obj-16)%2):
           if on_floor:location.items=location.items^item_bit
           else:inventory=inventory^item_bit
@@ -567,5 +581,5 @@ if __name__=="__main__":
   action=parse(command)
   while action.com!=QUIT:
     do_action(action)
-    command=input("HP: "+str(player_hp)+"/64 >")
+    command=input("HP: "+str(player_hp)+"/player_hp_max >")
     action=parse(command)

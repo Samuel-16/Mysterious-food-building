@@ -75,7 +75,7 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 ;const char hp_enum[]={
 48,6,12,4,40,52,-48,2,
 0,0,0,0,0,0,0,0,
--56,3,0,12,0,1,0,-60,0,-2,-72,-96,0,0,-1,0}
+-56,3,0,16,0,1,0,-60,0,-2,-72,-96,0,0,-1,0}
 //;const char eat_text[64][4][128]
 
 //Global output string buffer:
@@ -123,6 +123,7 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     RESET,
     GAME_OVER,
     HUMAN_CONVERSATION,
+    WIN_STATE,
 }
 
 ;const char command_enum[42][6]=
@@ -216,9 +217,11 @@ static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
 ;word eaten_npcs=0
 ;const byte cakemax[]={74,47}
 ;byte cakelife[]={74,47}
+;byte maidSleep=1
 ;Npc* fighting=nullptr
 ;static Textarr counter(Npc* npc,const char* npc_name,Textarr cout)
 
+#define player_hp_max 72
 #define item_uint2(n,loc) (((n)>>(loc))%4) // Isolate 2 adjacent bits as a single integer.
 #define npc_uint2(n,loc) (((((n)%256)&(1<<(loc)))?1:0)|((((n)>>8)&(1<<(loc)))?2:0)) // Isolate a bit in two adjacent bytes to make a 2-bit integer.
 #define check_can_hold_multiple(arr) ((arr)&(APPLE|APPLES|HEALTH_POTION|TWO_HEALTH_POTIONS)) // Check if an item can be stacked.
@@ -227,6 +230,10 @@ static inline Textarr& operator<<(struct Textarr &inp, const Textarr apen){
 #define VISCOUNT_MOVED     (flags & 2)
 #define HUMAN_CHECKED      (flags & 4)
 #define HUMAN_FREE         (flags & 8)
+#define GUARD_ROOM_VISIT   (flags & 16)
+#define ART_ROOM_VISIT     (flags & 32)
+#define GUI                (flags & 64)
+#define JP                 (flags & 128)
 
 ;Npc npcs[]={
   {.inventory=BRUSH}, // Maid
@@ -304,13 +311,25 @@ There is an entrance from the west; covered by some kind of banner, which is too
   {.type=CORRIDOR,.east=22,.west=24,.description=
     R"(Light shines into this long corridor from the south.)"},
   {.type=BEDROOM,.east=23,.west=25,.description=
-    R"(It's a lavish bedroom with an en suite to the south.)"},
+    R"(It's a lavish bedroom with an en suite to the south.
+You would not be able to fit inside the en suite...)"},
   {.type=HALL,.north=26,.east=24,.description=
     R"(An inviting hall, clearly intended to welcome guests into this place which you now suspect to be some kind of manor.)"},
   {.type=ART_ROOM,.south=25,.items=LEVER,.description=
     R"(The room seems well used as an exit, but dusty paintings hang on dusty walls.)"},
   {.type=CAVE,.west=9,.description=
-    R"(At the cave's end, there is a warm cake on a table-like ledge.)"},}
+    R"(At the cave's end, there is a warm cake on a table-like ledge.)"},
+  {.type=FOREST,.description=
+    R"(You are already deep in the forest.
+You don't think you could ever find your way back to that building again.)"},
+  {.type=FOREST,.description=
+    R"(You have picked up the scent of your village.
+You are beginning to find your way home.)"},
+  {.type=FOREST,.description=
+    R"(You recognise this place!
+At long last, you are finally almost home!)"},
+  {.type=VILLAGE,.npcs=FAMILY_MEMBER,.description=
+    R"(You stand at the entrance to your village.)"}}
 
 ;static std::int_least8_t parse_com_check(const char** arr,int arr_size){
     for (ibyte i=0;i<arr_size;i++){
@@ -434,10 +453,10 @@ static inline byte check_speech(byte npc_no){
     case 1:
       if(inventory & STAIRCASE)
         return 6;
-      if((locs[5].items & STAIRCASE)==0)
-        return 7;
       if(locs[13].up!=0)
         return 8;
+      if((locs[5].items & STAIRCASE)==0)
+        return 7;
       return 0;
     case 3:
       if(HUMAN_EATEN_BY_ORC)
@@ -480,18 +499,26 @@ static Textarr describe(const Location location, Textarr cout){
     cout << "NORTH: ->"
     << type_enum[locs[location.north].type]
     << '\n';
+  else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
+    cout << "There is a vast expance of forest to the \033[1mnorth\033[0m.\n";
   if (location.east>0)
     cout << "EAST: ->"
     << type_enum[locs[location.east].type]
     << '\n';
+  else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
+    cout << "There is a vast expance of forest to the \033[1meast\033[0m.\n";
   if (location.south>0)
     cout << "SOUTH: ->"
     << type_enum[locs[location.south].type]
     << '\n';
+  else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
+    cout << "There is a vast expance of forest to the \033[1msouth\033[0m.\n";
   if (location.west>0)
     cout << "WEST: ->"
     << type_enum[locs[location.west].type]
     << '\n';
+  else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
+    cout << "There is a vast expance of forest to the \033[1mwest\033[0m.\n";
   if (location.up>0)
     cout << "UP: ->"
     << type_enum[locs[location.up].type]
@@ -536,12 +563,12 @@ static inline Textarr pull_lever(Textarr cout,bool eats){
 ;[[nodiscard]]
 Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
   if (cakelife==0){return cout;}
-  if (player_hp>=64){return cout<<"You don't need any cake right now.\n";}
-  cout << "You started eating the cake.";
+  if (player_hp>=player_hp_max){return cout<<"You don't need any cake right now.\n";}
+  cout << "You started eating the cake.\n";
   player_hp+=cakelife;
-  if(player_hp>64){
-    cakelife=player_hp-64;
-    player_hp=64;
+  if(player_hp>player_hp_max){
+    cakelife=player_hp-player_hp_max;
+    player_hp=player_hp_max;
     cout<<"You are fully healed!\n"
     <<(byte)((cakelife*100+cakemax)/cakemax)<<'%'<<" of the cake remains.\n";}
   else{
@@ -577,28 +604,28 @@ Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
             return cout;}
           switch(action.obj){
             case NORTH:
-              if(location.north==0){
+              if(location.north==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
                 cout<<"No way to go north.\n";
                 return cout;}
               loc=location.north;
               cout<<"You went north.\n";
               break;
             case EAST:
-              if(location.east==0){
+              if(location.east==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
                 cout<<"No way to go east.\n";
                 return cout;}
               loc=location.east;
               cout<<"You went east.\n";
               break;
             case SOUTH:
-              if(location.south==0){
+              if(location.south==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
                 cout<<"No way to go south.\n";
                 return cout;}
               loc=location.south;
               cout<<"You went south.\n";
               break;
             case WEST:
-              if(location.west==0){
+              if(location.west==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
                 cout<<"No way to go west.\n";
                 return cout;}
               loc=location.west;
@@ -622,7 +649,20 @@ Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
               cout<<obj_name<<" is an invalid direction.\n";
               return cout;
           }
+          // `loc` should only be 0 if the player has the restaurant, and is in a clearing or forest, in which case it MUST be changed to a non-zero value.
+          if(loc==0){
+            if(&locs[30]==&location)
+              loc=31;
+            else if(&locs[29]==&location)
+              loc=30;
+            else if(&locs[28]==&location)
+              loc=29;
+            else
+              loc=28;}
           ;cout=describe(locs[loc],cout)
+          ;if(loc==5 && !GUARD_ROOM_VISIT){
+            flags=flags|16; // Effectively `GUARD_ROOM_VISIT=true;`
+            cout<<"Use MEET GUARD or CHECK GUARD to speak with the guard\nUse GET or LIFT to pick up an item.\n";}
           ;if(loc==4 && (inventory&STAIRCASE)){cout<<"You sense there may be somthing more to this room.\n";}
           ;if(loc==12 && !HUMAN_CHECKED){
             flags=flags|4; // Effectively `HUMAN_CHECKED=true;`
@@ -636,19 +676,26 @@ Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
           ;if(loc==21 && cakelife[1]>0){
             cout<<"There is cake.\n";
             cout=CakeRoom(cout,cakelife[1],cakemax[1]);}
+          ;if(loc==26 && !ART_ROOM_VISIT)
+            flags=flags|32; // Effectively `GUARD_ROOM_VISIT=true;`
+           else if(loc==26 && locs[26].down==0)
+            cout<<"You notice a \033[1mlever\033[0m behind a painting!\n";
           ;if(loc==3 && (inventory & RESTAURANT) && npcs[2].hp>0){
-            (((((((((((((cout
-            << "YOU!!!\n") - 6)
-            << "That was my \033[1mdaughter's\033[0m restaurant!\n") - 3)
-            << "And you \033[1mtook\033[0m it!\n") - 5)
-            << "YOU") -2)
+            (((((((((((((((cout
+            << "A viscount approaches from behind.\n") - 4)
+            << "\"YOU!!!\"\n") - 6)
+            << "\"That was my \033[1mdaughter's\033[0m restaurant!\"\n") - 3)
+            << "\"And you \033[1mtook\033[0m it!\"\n") - 5)
+            << "\"YOU") -2)
             << " WILL") -2)
-            << " \033[1mPAY!\033[0m\n") -4)
+            << " \033[1mPAY!\033[0m\"\n") -4)
             << "The \033[1mviscount\033[0m attacks.\n") -2
             ;if(!(locs[3].npcs & VISCOUNT)){
               locs[18].npcs=0;
-              locs[3].npcs=locs[3].npcs | VISCOUNT;}
-            ;fighting=&npcs[2];}
+              locs[3].npcs=locs[3].npcs | VISCOUNT;
+              flags=flags|2 /*Effectively `VISCOUNT_MOVED=true*/;}
+            ;fighting=&npcs[2]
+            ;cout=counter(fighting,full_enum[2],cout);}
           ;break;
         case GET:
           if(action.obj<16){
@@ -707,6 +754,9 @@ Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
             ;cout
             << "The staircase fell through the floor.\n"
             ;return cout;}
+          if(loc==31 && (item_bit & RESTAURANT)){
+            action.com=WIN_STATE;
+            return cout;}
           ;location.items=location.items ^ item_bit
           ;if((location.items&item_bit)==0){
             location.items=location.items ^ (item_bit<<1);
@@ -860,8 +910,8 @@ Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
               player_hp=0;
             else
               cout << item_food[action.obj-16];
-            if(player_hp+hp_enum[action.obj]<=(64>=player_hp?64:player_hp))player_hp+=hp_enum[action.obj];
-            else if(player_hp<64)player_hp=64;
+            if(player_hp+hp_enum[action.obj]<=(player_hp_max>=player_hp?player_hp_max:player_hp))player_hp+=hp_enum[action.obj];
+            else if(player_hp<player_hp_max)player_hp=player_hp_max;
             if(player_hp<=0)cout << item_death[action.obj-16];
             if((not check_can_hold_multiple(item_bit))||(item_uint2(on_floor? location.items:inventory,action.obj-16)%2)){
               if(on_floor){location.items=location.items^item_bit;}
@@ -952,6 +1002,30 @@ static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
   if(dmg)cout << "You were hit for " << dmg <<" damage!\n";
   else cout << "The attack missed.\n";
 
+  if(npc==&npcs[2] && loc==3 && VISCOUNT_MOVED && npcs[0].hp>0 && !((eaten_npcs & 0401)==0401) && !(maidSleep & 0200)){
+    if(eaten_npcs & 0400 && maidSleep &0100){
+      maidSleep<<=1;
+      cout<<"The maid woke up!\n\"\033[1mOWWwwww\033[0mwwwwwwwww!\"\n\"What the **** was that for?\"\n";}
+    else if(eaten_npcs & 1 && maidSleep &076 && player_hp<=28 && npc->hp<=72){
+        maidSleep=0100;
+        cout<<"The maid is still sleeping.\n\"\033[3;95m ... do it ... again.\033[0m\"\n";}
+    else if(!(eaten_npcs & 0401)){
+      if(maidSleep &020 && player_hp<=24 && npc->hp<=80){
+        maidSleep<<=1;
+        cout<<"The maid is still sleep talking.\n\"""\033[3;95m ... please ... eat me...\033[0m\"\n";}
+      else if(maidSleep &8 && player_hp<=32 && player_hp > 0 && npc->hp<=88){
+        maidSleep<<=1;
+        cout<<"The maid is sleep talking.\nYou can kind of make out some of the words.\n\"\033[3;95muhh ... eat ... ... me ...\033[0m\"\n";}
+      else if(maidSleep &4 && player_hp<=48 && player_hp > 0 && npc->hp<=96){
+        maidSleep<<=1;
+        cout<<"The sleeping maid is murmuring.\nJust what is the maid dreaming about?\n";}
+      else if(maidSleep &2 && player_hp<=64 && npc->hp<=112){
+        maidSleep<<=1;
+        cout<<"The sleeping maid is mumbling.\n";}
+      else if(maidSleep &1 && npc->hp<=120){
+        maidSleep<<=1;
+        cout<<"The sleeping maid rolled over.\n";}}}
+
   return cout;
 }
 
@@ -969,7 +1043,7 @@ static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
     
     ;parse_result action
     ;while (action.com<QUIT){
-        ;std::cout<<"HP: "<<player_hp<<"/64 >"<<std::flush
+        ;std::cout<<"HP: "<<player_hp<<"/"<<player_hp_max<<" >"<<std::flush
         ;std::cin.getline(input_buffer,255)
         ;action=parse(input_buffer)
         ;Textarr text = do_action(action)
@@ -990,4 +1064,6 @@ static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
           ;}  
         action.com=0;}
     ;}
+    if(action.com==WIN_STATE)
+      std::cout<<"YOU WIN!!!";
 ;}

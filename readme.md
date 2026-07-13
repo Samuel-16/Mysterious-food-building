@@ -1,4 +1,4 @@
-A simple RPG project to help me to learn C++.
+A simple (but very silly) RPG project to help me to learn C++.
 
 Explore a strange building that you have discovered to try to find a source of nourishment to bring back to your village.
 
