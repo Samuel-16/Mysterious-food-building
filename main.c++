@@ -256,7 +256,7 @@ There is a nice view of the lanscape and forest.)"},
   {.type=CORRIDOR,.east=5,.west=4,.npcs=MAID,.description=
     R"(It's a dark, moist, stone corridor.)"},
   {.type=ROOM,.north=1,.east=3,.west=2,.items=WOOD_SWORD,.description=
-    R"(It's a small wodden room.)"},
+    R"(It's a small wooden room.)"},
   {.type=ROOM,.west=3,.npcs=GUARD,.items=STAIRCASE+KNIFE+COIN,.description=
     R"(It's a stone, prison-like room.
 There is an inaccessable broken door high up on the wall.
@@ -1032,8 +1032,12 @@ static Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
 }
 
 static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
-  for(ibyte i=0;i<outp.end;++i)
+  for(ibyte i=0;i<outp.end;++i){
     inp << outp.arr[i];
+    #ifdef NDEBUG
+    std::this_thread::sleep_for(std::chrono::milliseconds((outp.sleeps[i]<<8)+(1<<6)));
+    #endif
+  }
   return inp;}
 
 ;int main() {
