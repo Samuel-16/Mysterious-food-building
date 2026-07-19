@@ -134,6 +134,7 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
 "SAVE","セ"}
 
 ;static inline Textarr& operator<<(struct Textarr &inp, const char* string){
+  assert(string!=nullptr);
   inp.arr[inp.end]=string;
   ++inp.end;
   inp.canApp=false;
@@ -496,36 +497,37 @@ static Textarr describe(const Location location, Textarr cout){
          npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)]
       << '\n'
   ;if (location.north>0)
-    cout << "NORTH: ->"
-    << type_enum[locs[location.north].type]
+    cout
+    << room_tra[location.type][locs[location.north].type][0]
     << '\n';
   else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
     cout << "There is a vast expance of forest to the \033[1mnorth\033[0m.\n";
-  if (location.east>0)
-    cout << "EAST: ->"
-    << type_enum[locs[location.east].type]
-    << '\n';
+  if (location.east>0){
+    assert(room_tra[location.type][locs[location.east].type][1]!=nullptr);
+    cout
+    << room_tra[location.type][locs[location.east].type][1]
+    << '\n';}
   else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
     cout << "There is a vast expance of forest to the \033[1meast\033[0m.\n";
   if (location.south>0)
-    cout << "SOUTH: ->"
-    << type_enum[locs[location.south].type]
+    cout
+    << room_tra[location.type][locs[location.south].type][2]
     << '\n';
   else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
     cout << "There is a vast expance of forest to the \033[1msouth\033[0m.\n";
   if (location.west>0)
-    cout << "WEST: ->"
-    << type_enum[locs[location.west].type]
+    cout
+    << room_tra[location.type][locs[location.west].type][3]
     << '\n';
   else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
     cout << "There is a vast expance of forest to the \033[1mwest\033[0m.\n";
   if (location.up>0)
-    cout << "UP: ->"
-    << type_enum[locs[location.up].type]
+    cout
+    << room_tra[location.type][locs[location.up].type][4]
     << '\n';
   if (location.down>0)
-    cout << "DOWN: ->"
-    << type_enum[locs[location.down].type]
+    cout
+    << room_tra[location.type][locs[location.down].type][5]
     << '\n';
   return cout;}
 
@@ -604,28 +606,28 @@ Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
             return cout;}
           switch(action.obj){
             case NORTH:
-              if(location.north==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
+              if(location.north==0 && (!(inventory & RESTAURANT) || !(location.type==CLEARING || location.type==FOREST))){
                 cout<<"No way to go north.\n";
                 return cout;}
               loc=location.north;
               cout<<"You went north.\n";
               break;
             case EAST:
-              if(location.east==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
+              if(location.east==0 && (!(inventory & RESTAURANT) || !(location.type==CLEARING || location.type==FOREST))){
                 cout<<"No way to go east.\n";
                 return cout;}
               loc=location.east;
               cout<<"You went east.\n";
               break;
             case SOUTH:
-              if(location.south==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
+              if(location.south==0 && (!(inventory & RESTAURANT) || !(location.type==CLEARING || location.type==FOREST))){
                 cout<<"No way to go south.\n";
                 return cout;}
               loc=location.south;
               cout<<"You went south.\n";
               break;
             case WEST:
-              if(location.west==0 && !(inventory & RESTAURANT) && !(location.type==CLEARING || location.type==FOREST)){
+              if(location.west==0 && (!(inventory & RESTAURANT) || !(location.type==CLEARING || location.type==FOREST))){
                 cout<<"No way to go west.\n";
                 return cout;}
               loc=location.west;
@@ -1061,7 +1063,7 @@ static inline std::ostream& operator<<(std::ostream& inp, const Textarr outp){
             ;text=FreeHuman(outBuff)
             ;std::cout << text
             ;clearOutBuff()
-          ;}  
+          ;}
         action.com=0;}
     ;}
     if(action.com==WIN_STATE)

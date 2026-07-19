@@ -1,3 +1,62 @@
+NORTH,EAST,SOUTH,WEST,UP,DOWN,LEFT,RIGHT=8,9,10,11,12,13,14,15
+ROOM,CLEARING,CORRIDOR,PRISON,BEDROOM,COURTROOM,FOREST,VILLAGE,BASEMENT,TREASURY,DINETTE,ART_ROOM,CAVE,HALL=0,1,2,3,4,5,6,7,8,9,10,11,12,13
+
+room_tra={(ROOM,ROOM,NORTH):"There is a wooden door to the **north**.",
+(ROOM,ROOM,SOUTH):"There is a wooden door to the **south**.",
+(CLEARING,CLEARING,NORTH):"There is a wooden gate to the **north**.",
+(CLEARING,CLEARING,SOUTH):"There is a wooden gate to the **south**.",
+(CLEARING,ROOM,EAST):"There is an open window to the **east**, which you could climb in through.",
+(ROOM,CLEARING,WEST):"There is an open window to the **west**, which you could climb out through.",
+(ROOM,CORRIDOR,EAST):"There is a stone door to the **east**.",
+(CORRIDOR,ROOM,WEST):"There is a stone door to the **west**.",
+(CORRIDOR,ROOM,EAST):"There is a wooden double door to the **east** which seems reinforced with metal.",
+(ROOM,CORRIDOR,WEST):"There is a wooden double door to the **west** which seems reinforced with metal.",
+(ROOM,BASEMENT,DOWN):"The staircase leads **down** into a basement.",
+(BASEMENT,ROOM,UP):"You could take the starcase back **up**stairs.",
+(BASEMENT,ROOM,EAST):"A rotton and soggy door leads to the **east**.",
+(ROOM,BASEMENT,WEST):"A rotton and soggy door leads to the **west**.",
+(ROOM,CAVE,SOUTH):"There is a dark tunnel leading **south**.",
+(CAVE,ROOM,NORTH):"There is a dim glow from the **north**.",
+(CAVE,CAVE,EAST):"There is a dark tunnel leading **east**.",
+(CAVE,CAVE,WEST):"There is still a tunnel letting you return **west**.",
+(CAVE,FOREST,WEST):"There is a dim glow from the **west**.",
+(FOREST,CAVE,EAST):"You could still return to the cave by going **east**.",
+(FOREST,CLEARING,NORTH):"You can see the building where you entered in the distant **north**.",
+(ROOM,TREASURY,EAST):"There is a gilded door to the **east**.",
+(TREASURY,ROOM,WEST):"The gilded door to the **west** is still there.",
+(ROOM,PRISON,NORTH):"The cell to the **north** is open.",
+(PRISON,ROOM,SOUTH):"The cell's exit is **south**.",
+(PRISON,HALL,EAST):"There is a *hidden* tunnel to the **east**.",
+(HALL,ROOM,UP):"There is a spiral staircase leading **up**.",
+(ROOM,HALL,DOWN):"There is a spiral staircase leading **down**.",
+(ROOM,HALL,SOUTH):"There is a grand double door leading **south**.",
+(ROOM,BEDROOM,EAST):"There is a wooden door to the **east**.",
+(BEDROOM,ROOM,WEST):"There is a wooden door to the **west**.",
+(HALL,ROOM,NORTH):"There is a grand double door leading **north**.",
+(HALL,DINETTE,EAST):"To the **east**, there is some kind of curtained doorway.",
+(HALL,TREASURY,WEST):"There is a gilded door to the **west**.",
+(TREASURY,HALL,EAST):"There is a gilded door to the **east**.",
+(TREASURY,ART_ROOM,UP):"A ladder leads **up** through a trapdoor.",
+(ART_ROOM,TREASURY,DOWN):"There is a trapdoor you could use to go back **down**.",
+(ART_ROOM,ROOM,SOUTH):"There is a wooden door to the **south**.",
+(ROOM,ART_ROOM,NORTH):"There is a wooden door to the **north**.",
+(ROOM,BEDROOM,DOWN):"You could jump **down**.",
+(ART_ROOM,COURTROOM,NORTH):"There is a grand wooden door to the **north**.",
+(COURTROOM,ART_ROOM,SOUTH):"There is an exit to the **south**.",
+(COURTROOM,ROOM,EAST):"There is a hole in **east** annex of the room that you could jump into.",
+(DINETTE,ROOM,SOUTH):"There is a wooden door to the **south**.",
+(ROOM,DINETTE,NORTH):"There is a wooden door to the **north**.",
+(DINETTE,BEDROOM,NORTH):"There is a wooden door to the **north**.",
+(BEDROOM,DINETTE,SOUTH):"There is a wooden door to the **south**.",
+(CORRIDOR,BEDROOM,WEST):"The only other door you could fit through is **west**.",
+(BEDROOM,CORRIDOR,EAST):"There is a wooden door to the **east**.",
+(BEDROOM,HALL,WEST):"There is a wooden door to the **west**.",
+(HALL,BEDROOM,EAST):"There is a wooden door to the **east**.",
+(HALL,ART_ROOM,NORTH):"There is a wooden door to the **north**.",
+(ART_ROOM,HALL,SOUTH):"There is a wooden door to the **south**.",
+(ART_ROOM,ROOM,DOWN):"There is a pole that you could slide **down**.",
+}
+
 item_info=("It looks like a toy sword, but you probably have the strength to use it to kill.",
 "Though many bad apples rest on the floor, this one looks edible.\nIt must have recently fallen.",
 "Yay! Many apples!",
@@ -68,15 +127,15 @@ item_dmg=(
   5/4,
   0)
 
-npc_speech=(("The maid is cleaning the corridor.\n\"Can I help you?\"",
-"The maid isn't cleaning the corridor anymore.\n\"Owch!\nDid you just eat my %2A%2A%2A%2A?\n*Why?*\"",
-"The maid isn't cleaning the corridor anymore.\n\"Owowowowowowowowowowwwwwwwww!\nOk ok okokokokok.\nPlease... please just kill me...\nI can't live like this.\"",
-"The maid has gone back to cleaning the corridor.\n\"It still hurts...\nWhat was all that for?\"",
-"The maid isn't cleaning the corridor anymore.\n\"Owch!\nYou win ok!\nStop eating me!\"",
-"The maid is crying now.\n\"Owwww ow ow ow owwwwwwwww!\nOk ok. Just finish me off.\"\nThe maid tries to smile through the tears.\n\"...I'm ... glad you liked me...\"",
-"The maid is cleaning the corridor.\n\"Is that a restaurant in your pocket?\n♡ Or are you just happy to see me? ♡\"",
+npc_speech=(("The maid is cleaning the corridor.\n\"m<Can I help you?>\"",
+"The maid isn't cleaning the corridor anymore.\n\"m<Owch!\nDid you just eat my %2A%2A%2A%2A?\n*Why?*\"",
+"The maid isn't cleaning the corridor anymore.\n\"m<Owowowowowowowowowowwwwwwwww!\nOk ok okokokokok.\nPlease... please just kill me...\nI can't live like this.>\"",
+"The maid has gone back to cleaning the corridor.\n\"m<It still hurts...\nWhat was all that for?>\"",
+"The maid isn't cleaning the corridor anymore.\n\"m<Owch!\nYou win ok!\nStop eating me!>\"",
+"The maid is crying now.\n\"m<Owwww ow ow ow owwwwwwwww!\nOk ok. Just finish me off.>\"\nThe maid tries to smile through the tears.\n\"m<...I'm ... glad you liked me...>\"",
+"The maid is cleaning the corridor.\n\"m<Is that a restaurant in your pocket?\n♡ Or are you just happy to see me? ♡>\"",
 "The maid is fast asleep.",
-"\"Oh. Was that my boss?\""),
+"\"m<Oh. Was that my boss?>\""),
 ("It's an armed guard.\n\"Hey there, not sure who you are, but the way up is out of action.\nYou'll have to go round the other way.\"",
 "It's a half-eaten traumatised guard.\n\"AAAGGAGG! Get away! GET AWAY!\"",
 "The guard isn't conscious anymore.\nIt's bleeding out.",
@@ -85,7 +144,7 @@ npc_speech=(("The maid is cleaning the corridor.\n\"Can I help you?\"",
 "The guard isn't conscious anymore.\nIt's bleeding out.",
 "It's an armed guard.\n\"Hey there, not sure who you are, but you need to put that staircase down.\"",
 "It's an armed guard.\n\"Hey there, not sure who you are, but you need to put that staircase back.\"",
-"It's an armed guard.\nThe guard regards you with a confusing look."),
+"It's an armed guard.\nThe guard regards you with a confused look.\n\"Wait... what on earth is going on here?\""),
 ("It's a viscount working at a desk.\n\"What are you doing in my courtroom?\nGet out!\"",
 "",
 "",
@@ -155,7 +214,10 @@ npc_info=(("A maid is cleaning the corridor.",
 "An unconscious guard is bleeding out in the corner.",
 "A defeated guard is tending to its wounds.",
 "A half-eaten defeated guard regards you with a terrified look.",
-"An unconscious defeated guard is bleeding out in the corner."),
+"An unconscious defeated guard is bleeding out in the corner.",
+"A guard stands guard.\nThe guard regards you with a sceptical look.",
+"A guard stands guard.\nThe guard regards you with a sceptical look.",
+"The guard is still standing guard.\nThe guard regards you with a confused look."),
 ("There is a viscount working a desk at the far end of the room.\n\"Y<Can I help you?>\"",
 "",
 "",
@@ -219,8 +281,8 @@ def parse_mkdown(itera) -> tuple:
   else:return *(i.\
     replace(" **"," \\033[1m").# Bold
     replace(" *"," \\033[3m").#  Italic
-    replace("\n**"," \\033[1m").# Bold
-    replace("\n*"," \\033[3m").#  Italic
+    replace("\n**","\n\\033[1m").# Bold
+    replace("\n*","\n\\033[3m").#  Italic
     replace("**","\\033[0m").#   Close formatting
     replace("*","\\033[0m").#    Close formatting
     replace(">","\\033[0m").#    Close formatting
@@ -239,6 +301,20 @@ def parse_mkdown(itera) -> tuple:
     replace("C<","\\033[30;106m").#   Cyan background
     replace("%2A","*") # Unescape literal *.
     for i in itera),
+
+def make_c_dirlist_arr(arr:dict,name:str)->str:
+  out="const char* const "+name+"[14][14][6]={"
+  for i in range(14):
+    out+="{"
+    for j in range(14):
+      out+="{"
+      for k in range(6):
+        new=arr.get((i,j,k+8))
+        if new==None:out+="{0},"
+        else:out+='"'+new+'",'
+      out+="},\n"
+    out+="},"
+  return out+"};"
 
 def make_c_arr(arr:tuple,name:str)->str:
   if (any(isinstance(i,str)for i in arr)!=any(isinstance(i,str)for i in arr)):raise ValueError
@@ -274,6 +350,8 @@ npc_speech=parse_mkdown(npc_speech)
 npc_info=parse_npc_objs(parse_mkdown(npc_info))
 
 if __name__=="__main__":
+  print(make_c_dirlist_arr(dict(zip(tuple(room_tra.keys()),parse_mkdown(tuple(room_tra.values())))),"room_tra"))
+  print("\n")
   print(make_c_arr(item_info,"item_info"))
   print("\n")
   print("const float item_dmg[16]={",*(str(i)+","for i in item_dmg),"};\n")
