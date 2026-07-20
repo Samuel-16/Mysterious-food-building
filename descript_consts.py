@@ -257,6 +257,38 @@ npc_info=(("A maid is cleaning the corridor.",
 "A beloved family member lies injured on the floor; looking at you with fear, confusion, and horror.",
 "The grotesque remains of a beloved family member lies solemnly on the ground.",))
 
+# A reverse ennumeration for index lookup at runtime.
+rev_enum_str="""
+// A reverse ennumeration for index lookup at runtime.
+;const char full_enum[80][16]=
+{"maid", "guard", "viscount", "orc", "chef", "human", "tree", "family member",
+"north", "east", "south", "west", "up", "down", "left", "right",
+"wood sword", "apple", "Apples", "health potion", "Health Potionx2", "chair", "staircase", "knife",
+"restaurant", "bone", "rusted sword", "normal sword", "steel sword", "coin", "brush", "lever",
+"メイド", "守衛", "子爵", "鬼", "コック", "人間", "木", "家の人",
+"北", "東", "南", "西", "上", "下", "左", "右",
+"林の刀", "りんご", "Apples", "治癒薬", "Health Potionx2", "椅子", "階段", "包丁",
+"食堂", "骨", "錆びた剣", "普通の剣", "鋼の剣", "硬貨", "刷子", "レバー",
+"林の剣", "林檎", "Apples", "体力ポーシ", "Health Potionx2", "チェア", "段々", "ナイフ",
+"レストラン", "ボーン", "錆びた刀", "普通の刀", "鋼の刀", "コイン", "ブラシ", "てこ",}
+;const char hp_enum[]={
+48,6,12,4,40,52,-48,2,
+0,0,0,0,0,0,0,0,
+-56,3,0,16,0,1,0,-60,0,-2,-72,-96,0,0,-1,0}
+
+;const char type_enum[28][11]=
+{"room","clearing","corridor","prison","bedroom","courtroom","forest","village","basement","treasury","dinette","art room","cave","hall",
+ "部屋", "開墾",     "廊下",    "刑務所", "寝室",    "公判廷",    "森",    "村",      "地下室",   "金庫",    "食堂",    "美術室",   "空洞", "会館"}
+
+;const char command_enum[42][6]=
+{  "GO","GET", "DROP", "FIGHT", "MEET", "EAT", "SWING", "HELP", "QUIT", "RESET",\
+"VISIT","LIFT","THROW","HIT",  "CHECK", "SWALL","USE",  "EXIT", "RESTA", "HINT",\
+  "行","取",   "落",   "戦",     "合",   "食",   "振",    "辞",   "リ",    "助",\
+  "訪","拾",   "投",   "当",     "見",   "飲",   "使",    "出",   "再",    "仄",\
+"SAVE","セ"}
+
+;"""
+
 def format_str(inp:str) -> str:
   "Highlight npc names so that the player knows they can type them as part of a valid command."
   for i in ('maid', 'viscount', 'orc', 'chef', 'human', 'tree', 'family member', 'メイド', '子爵', '鬼', 'コック', '人間', '木', '家の人', 'guard', '守衛'):
@@ -350,6 +382,8 @@ npc_speech=parse_mkdown(npc_speech)
 npc_info=parse_npc_objs(parse_mkdown(npc_info))
 
 if __name__=="__main__":
+  print(rev_enum_str)
+  print("\n")
   print(make_c_dirlist_arr(dict(zip(tuple(room_tra.keys()),parse_mkdown(tuple(room_tra.values())))),"room_tra"))
   print("\n")
   print(make_c_arr(item_info,"item_info"))
