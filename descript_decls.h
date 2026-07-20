@@ -1,0 +1,12 @@
+extern const char full_enum[80][16];
+extern const char hp_enum[32];
+extern const char type_enum[28][11];
+extern const char command_enum[42][6];
+extern const char* const room_tra[14][14][6];
+extern const char* const item_info[16];
+extern const float item_dmg[16];
+extern const Textarr item_food[15];
+extern const Textarr item_death[15];
+extern const char* const npc_speech[8][9];
+extern const char* const human_speech[5];
+extern const char* const npc_info[8][9];

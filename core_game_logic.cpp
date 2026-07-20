@@ -1,9 +1,16 @@
-class game_state{
-  private:
-    char outBuff[1024]={0};
-    #include "core_game_data.hpp"
+#include <cstdlib> // For random number generation.
+#include <cstdint> // For better practice int types.
+#include <charconv> // To convert numbers to string.
+#include <cassert> // To alert if any program states intended to be impossible are reached.
 
-    Textarr counter(Npc* npc,const char* npc_name, Textarr cout){
+#include "enums.h"
+#include "core_game_structs.hpp"
+#include "descript_decls.h"
+#include "descript_consts.h"
+#include "Textarr.hpp"
+#include "core_game_logic.hpp"
+
+Textarr game_state::counter(Npc* npc,const char* npc_name, Textarr cout){
       assert(npc_name!=nullptr);
       cout << "The "<<npc_name<<" attacks!\n";
       word dmg;
@@ -47,9 +54,7 @@ class game_state{
       return cout;
     }
 
-
-    [[nodiscard]]
-    inline Textarr check_orc(Textarr cout){
+inline Textarr game_state::check_orc(Textarr cout){
       if(npc_uint2(eaten_npcs,3)==0){
         if(locs[8].items & CHAIR && !(npcs[3].inventory & CHAIR)){
           npcs[3].inventory=npcs[3].inventory^CHAIR;
@@ -96,9 +101,9 @@ class game_state{
       ;locs[8].north=12
       ;locs[8].description="The room feels slightly less oppressive now."
       ;return cout;
-    };
+    }
 
-    inline byte check_speech(byte npc_no){
+inline byte game_state::check_speech(byte npc_no){
       if(npc_uint2(eaten_npcs,npc_no)!=0 || npc_no==2 || npc_no==4 || npc_no==6 || npc_no==7)
         return 0;
       switch(npc_no){
@@ -136,8 +141,7 @@ class game_state{
       return 0;
     }
 
-    [[nodiscard]]
-    Textarr describe(const Location location, Textarr cout){
+Textarr game_state::describe(const Location location, Textarr cout){
       cout 
       << "You are in a " << type_enum[locs[loc].type]
       << '.' << '\n'
@@ -190,8 +194,7 @@ class game_state{
         << '\n';
       return cout;}
 
-    [[nodiscard]]
-    inline Textarr pull_lever(Textarr cout,bool eats){
+inline Textarr game_state::pull_lever(Textarr cout,bool eats){
       if ((loc!=13 && loc!=26)|| !(locs[loc].items & LEVER))
         return cout;
       locs[loc].items=locs[loc].items ^ LEVER;
@@ -212,8 +215,7 @@ class game_state{
       return cout;
     }
 
-    ;[[nodiscard]]
-    Textarr CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
+Textarr game_state::CakeRoom(Textarr cout,byte& cakelife,const byte cakemax){
       if (cakelife==0){return cout;}
       if (player_hp>=player_hp_max){return cout<<"You don't need any cake right now.\n";}
       cout << "You started eating the cake.\n";
@@ -231,23 +233,22 @@ class game_state{
           locs[27].description="The cake is gone.";
         }
       return cout;}
-  public:
-    //Global output string buffer:
-    void clearOutBuff(){
-    for(std::size_t i=0;i<sizeof(outBuff);++i)
-        outBuff[i]='\0';};
 
-    Textarr describe(const Location location){
+void game_state::clearOutBuff(){
+    for(std::size_t i=0;i<sizeof(outBuff);++i)
+        outBuff[i]='\0';}
+
+Textarr game_state::describe(const Location location){
       char buff[24]={0};
       Textarr cout=describe(location,{.varStrEnd=buff});
       return cout;
     }
 
-    Textarr describe(){
+Textarr game_state::describe(){
       return describe(locs[loc]);
     }
 
-    ;Textarr do_action(parse_result &action){
+Textarr game_state::do_action(parse_result &action){
         ;Location &location=locs[loc]
         ;word item_bit // In event of undefined behaviour; initialise at zero.
         ;Textarr cout={.varStrEnd=outBuff}
@@ -636,8 +637,7 @@ class game_state{
         action.com=GAME_OVER;}
       return cout;}
 
-    [[nodiscard]]
-    Textarr FreeHuman(char buff[]){
+Textarr game_state::FreeHuman(char buff[]){
       Textarr cout={.varStrEnd=buff}
       ;(((((
       cout << human_speech[1])-16)
@@ -651,7 +651,7 @@ class game_state{
       return cout;
     }
 
-    char* get_player_hp(char outBuff[6]){
+char* game_state::get_player_hp(char outBuff[6]){
       outBuff[0]=('0'+(player_hp/10));
       outBuff[1]=('0'+(player_hp%10));
       outBuff[2]='/';
@@ -659,5 +659,3 @@ class game_state{
       outBuff[4]=('0'+(player_hp_max%10));
       outBuff[5]='\0';
       return outBuff;}
-
-}

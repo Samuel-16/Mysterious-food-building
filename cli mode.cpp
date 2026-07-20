@@ -10,9 +10,9 @@
 
 #include "enums.h"
 #include "core_game_structs.hpp"
-#include "descript_consts.h"
 #include "Textarr.hpp"
-#include "core_game_logic.cpp"
+#include "descript_decls.h"
+#include "core_game_logic.hpp"
 
 ;static std::int_least8_t parse_com_check(const char** arr,int arr_size){
     for (ibyte i=0;i<arr_size;i++){
