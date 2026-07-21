@@ -3,7 +3,7 @@
 
 class game_state{
   private:
-    char outBuff[1024]={0};
+    char outBuff[64]={0};
     #include "core_game_data.hpp"
 
     Textarr counter(Npc* npc,const char* npc_name, Textarr cout);

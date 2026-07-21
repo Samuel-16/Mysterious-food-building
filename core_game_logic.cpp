@@ -144,54 +144,54 @@ inline byte game_state::check_speech(byte npc_no){
 Textarr game_state::describe(const Location location, Textarr cout){
       cout 
       << "You are in a " << type_enum[locs[loc].type]
-      << '.' << '\n'
-      << locs[loc].description << '\n'
+      << ".\n"
+      << locs[loc].description << "\n"
       ;if (location.items & ~LEVER){
         cout << "\nOn the floor, there is:\n";
         for (int i=0;i<15;i++)
           if (location.items & 1<<i)cout
           << "-"
           << full_enum[16+i]
-          << '\n';}
+          << "\n";}
       for(ibyte i=0;i<8;i++)
         if(1<<i & location.npcs)
           cout
           << npc_info[i][check_speech(i) && npc_info[i][check_speech(i)]!=nullptr? check_speech(i):
              npc_uint2(eaten_npcs,i)+3*int(npcs[i].hp<=0)]
-          << '\n'
+          << "\n"
       ;if (location.north>0)
         cout
         << room_tra[location.type][locs[location.north].type][0]
-        << '\n';
+        << "\n";
       else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
         cout << "There is a vast expance of forest to the \033[1mnorth\033[0m.\n";
       if (location.east>0){
         assert(room_tra[location.type][locs[location.east].type][1]!=nullptr);
         cout
         << room_tra[location.type][locs[location.east].type][1]
-        << '\n';}
+        << "\n";}
       else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
         cout << "There is a vast expance of forest to the \033[1meast\033[0m.\n";
       if (location.south>0)
         cout
         << room_tra[location.type][locs[location.south].type][2]
-        << '\n';
+        << "\n";
       else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
         cout << "There is a vast expance of forest to the \033[1msouth\033[0m.\n";
       if (location.west>0)
         cout
         << room_tra[location.type][locs[location.west].type][3]
-        << '\n';
+        << "\n";
       else if ((locs[loc].type==CLEARING || locs[loc].type==FOREST)&& (inventory & RESTAURANT))
         cout << "There is a vast expance of forest to the \033[1mwest\033[0m.\n";
       if (location.up>0)
         cout
         << room_tra[location.type][locs[location.up].type][4]
-        << '\n';
+        << "\n";
       if (location.down>0)
         cout
         << room_tra[location.type][locs[location.down].type][5]
-        << '\n';
+        << "\n";
       return cout;}
 
 inline Textarr game_state::pull_lever(Textarr cout,bool eats){
@@ -239,8 +239,7 @@ void game_state::clearOutBuff(){
         outBuff[i]='\0';}
 
 Textarr game_state::describe(const Location location){
-      char buff[24]={0};
-      Textarr cout=describe(location,{.varStrEnd=buff});
+      Textarr cout=describe(location,{.varStrEnd=outBuff});
       return cout;
     }
 
@@ -393,7 +392,7 @@ Textarr game_state::do_action(parse_result &action){
                 inventory=inventory ^ (item_bit<<1);
                 assert(multi_item);
                 assert(item_uint2(inventory,action.obj-16)==2);}
-              ;cout<<"You picked up the "<<obj_name<<'.' << '\n'
+              ;cout<<"You picked up the "<<obj_name<<".\n"
               ;if(item_bit==STAIRCASE){cout<<"Maybe you could put this somewhere else?\n";}
               ;if(item_bit==RESTAURANT && locs[13].up==0){cout<<"???\nThere was a \033[1mlever\033[0m under the restarunt.\n";}
               ;if(fighting) cout=counter(fighting,npc_name,cout);
@@ -413,7 +412,7 @@ Textarr game_state::do_action(parse_result &action){
                   cout<<obj_name<<" is already on the floor.\n";
                   return cout;}}
               if(((item_bit | (multi_item? item_bit<<1:0)) & inventory)==0){
-                cout<<"You don't have any "<<obj_name<<'.' << '\n';
+                cout<<"You don't have any "<<obj_name<<".\n";
                 return cout;}
               if(loc==4 && (item_bit & STAIRCASE)){
                 ;inventory=inventory ^ item_bit
@@ -440,14 +439,14 @@ Textarr game_state::do_action(parse_result &action){
               break;
             case FIGHT:
               if(action.obj>=8){
-                cout<<"Can't fight "<<obj_name<<'.' << '\n';
+                cout<<"Can't fight "<<obj_name<<".\n";
                 return cout;}
               item_bit=1<<action.obj;
               if((location.npcs & item_bit)==0){
                 cout << "The "<<obj_name<<" is not in this room.\n";
                 return cout;}
               if(npcs[action.obj].hp<=0){
-                cout << "You have already defeated the " << obj_name << '.' << '\n';
+                cout << "You have already defeated the " << obj_name << ".\n";
                 return cout;}
               if((action.obj==5 and npc_uint2(eaten_npcs,action.obj)>0) or npcs[action.obj].hp<=1){
                 npcs[action.obj].hp=0
@@ -456,7 +455,7 @@ Textarr game_state::do_action(parse_result &action){
                 << "You won.\n";
                 return cout;}
               fighting=&npcs[action.obj];
-              cout << "You are now fighting the " << obj_name << '.' << '\n';
+              cout << "You are now fighting the " << obj_name << ".\n";
               break;
             case MEET:
               // First check if it is somthing that is actually present.
@@ -467,14 +466,14 @@ Textarr game_state::do_action(parse_result &action){
                   return cout;}
                 if(fighting){
                   if(fighting!=&npcs[action.obj]){
-                    cout << "Your focus is on " << npc_name << '.' << '\n';
+                    cout << "Your focus is on " << npc_name << ".\n";
                     return cout;}
                   cout << "They have "<<fighting->hp<<" hp.\n";}
                 else
                   cout
                   << npc_speech[action.obj][check_speech(action.obj)? check_speech(action.obj):
                      npc_uint2(eaten_npcs,action.obj)+3*int(npcs[action.obj].hp<=0)]
-                  << '\n';}
+                  << "\n";}
               else if(action.obj<16){
                 item_bit=0; // This variable will be used differently on this path. It will be treated like a bool.
                 switch(action.obj){
@@ -503,14 +502,14 @@ Textarr game_state::do_action(parse_result &action){
                     item_bit=1;//location.right;
                     break;}
                 if(item_bit!=0){
-                  cout<<"There is nothing "<<obj_name<<'.' << '\n';
+                  cout<<"There is nothing "<<obj_name<<".\n";
                   return cout;}}
               else{
                 item_bit=1<<(action.obj-16);
                 if (((location.items|inventory) & item_bit)==0){
-                  cout<<"There is no "<<obj_name<<'.' << '\n';
+                  cout<<"There is no "<<obj_name<<"\n.";
                   return cout;}
-                cout << item_info[action.obj-16] << '\n';// Then display info about it.
+                cout << item_info[action.obj-16] << "\n";// Then display info about it.
                 return cout;}
               if(fighting) cout=counter(fighting,npc_name,cout);
               break;
@@ -519,7 +518,7 @@ Textarr game_state::do_action(parse_result &action){
               if(action.obj<8){
                 item_bit=1<<action.obj;
                 if(item_bit & ((eaten_npcs>>8)&(eaten_npcs%256))){ // & both bytes of eaten_npcs together before comparing it to item_bit.
-                  cout<<"You have already eaten the "<<obj_name<<'.' << '\n';
+                  cout<<"You have already eaten the "<<obj_name<<".\n";
                   return cout;}
                 if((location.npcs & item_bit)==0){
                   cout<<"The "<<obj_name<<" is not in this room.\n";
@@ -528,7 +527,7 @@ Textarr game_state::do_action(parse_result &action){
                   ;player_hp+=hp_enum[action.obj]>>npc_uint2(eaten_npcs,action.obj)
                   ;eaten_npcs=eaten_npcs^(item_bit|((item_bit & eaten_npcs)<<8))
                   ;npcs[action.obj].hp=npcs[action.obj].hp>>1
-                  ;cout << "You ate the " << obj_name << '.' << '\n'
+                  ;cout << "You ate the " << obj_name << ".\n"
                   ;if(fighting==&npcs[3])
                     cout=check_orc(cout);
                 ;}else if(fighting!=&npcs[action.obj]){
@@ -568,7 +567,7 @@ Textarr game_state::do_action(parse_result &action){
               else{
                 item_bit=1<<(action.obj-16);
                 if (((location.items|inventory) & (item_bit| (check_can_hold_multiple(item_bit)? item_bit<<1:0)))==0){
-                  cout<<"There is no "<<obj_name<<'.' << '\n';
+                  cout<<"There is no "<<obj_name<<".\n";
                   return cout;}
                 if(action.obj-16==15)
                   return pull_lever(cout,true);
@@ -601,9 +600,9 @@ Textarr game_state::do_action(parse_result &action){
               if(item_bit==LEVER && (item_bit & location.items))
                 return pull_lever(cout,false);
               if((item_bit & inventory)==0){
-                cout<<"You don't have any "<<obj_name<<'.' << '\n';
+                cout<<"You don't have any "<<obj_name<<".\n";
                 return cout;}
-              cout << "You swung the " << obj_name << '.' << '\n';
+              cout << "You swung the " << obj_name << ".\n";
               if(fighting==nullptr){
                 if((item_bit & STAIRCASE)&& loc==4){
                   inventory=inventory ^ item_bit;

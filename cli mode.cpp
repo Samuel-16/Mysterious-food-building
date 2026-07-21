@@ -87,6 +87,7 @@ game_state game;
     << "Available commands are: GET, DROP, GO, FIGHT, MEET, EAT, SWING, QUIT, RESET, and HELP.\n\n"
     << game.describe()
     << "What will you do?\n"
+    ;game.clearOutBuff()
     ;char input_buffer[256]
     
     ;parse_result action
