@@ -650,18 +650,28 @@ Textarr game_state::FreeHuman(char buff[]){
       return cout;
     }
 
-char* game_state::get_player_hp(char outBuff[6]){
+char* game_state::get_player_hp(char outBuff[7]){
   if(player_hp<=99){
       outBuff[0]=('0'+(player_hp/10));
       outBuff[1]=('0'+(player_hp%10));
       outBuff[2]='/';
       outBuff[3]=('0'+(player_hp_max/10));
-      outBuff[4]=('0'+(player_hp_max%10));}
+      outBuff[4]=('0'+(player_hp_max%10));
+      outBuff[5]='\0';}
+  else if(player_hp<=999){
+      outBuff[0]=('0'+(player_hp/100));
+      outBuff[1]=('0'+((player_hp/10)%10));
+      outBuff[2]=('0'+(player_hp%10));
+      outBuff[3]='/';
+      outBuff[4]=('0'+(player_hp_max/10));
+      outBuff[5]=('0'+(player_hp_max%10));
+      outBuff[6]='\0';}
   else{
       outBuff[0]='L';
       outBuff[1]='o';
-      outBuff[2]='t';
-      outBuff[3]='s';
-      outBuff[4]='!';}
-  outBuff[5]='\0';
+      outBuff[2]='a';
+      outBuff[3]='d';
+      outBuff[4]='s';
+      outBuff[5]='!';
+      outBuff[6]='\0';}
   return outBuff;}

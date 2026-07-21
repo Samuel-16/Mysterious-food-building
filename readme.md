@@ -4,4 +4,4 @@ Explore a strange building that you have discovered to try to find a source of n
 
 # Compiling
 
-To compile, run `make descript_consts.h` to generate the constants file, then run `g++ main.c++`.
+To compile, run `make final/cli\ text\ game` to generate the excecutable, then run `final/cli\ text\ game` to run it.
