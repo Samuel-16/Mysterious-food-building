@@ -1,11 +1,5 @@
 #ifndef type_enum_size
 
-
-// Set datatype names. to avoid needing to type longer names repeatedly.
-using byte=std::uint8_t;  // A byte will be a one byte positive integer.
-using ibyte=std::uint_fast8_t;  // An ibyte will be at least a one-byte positive integer.
-using word=std::uint_least16_t; // A word will be a two byte positive integer.
-
 // Ennumerate by powers of two.
 // Obtainable items.
 ;enum Item{
@@ -85,7 +79,7 @@ using word=std::uint_least16_t; // A word will be a two byte positive integer.
     HUMAN_CONVERSATION,
     WIN_STATE,
 }
-
+;
 #define type_enum_size ((sizeof(type_enum)/sizeof(type_enum[0]))/2)
 #define player_hp_max 72
 #define item_uint2(n,loc) (((n)>>(loc))%4) // Isolate 2 adjacent bits as a single integer.

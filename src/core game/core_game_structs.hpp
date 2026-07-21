@@ -1,3 +1,10 @@
+#include <cstdint> // For better practice int types.
+
+// Set datatype names. to avoid needing to type longer names repeatedly.
+using byte=std::uint8_t;  // A byte will be a one byte positive integer.
+using ibyte=std::uint_fast8_t;  // An ibyte will be at least a one-byte positive integer.
+using word=std::uint_least16_t; // A word will be a two byte positive integer.
+ 
 // A structure to be returned from the parse meathod.
 ;struct parse_result{
     std::int_least8_t obj=-1;//Corrisponds with an item in the full_enum.

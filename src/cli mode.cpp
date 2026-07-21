@@ -8,11 +8,11 @@
 #include <charconv> // To convert numbers to string.
 #include <cassert> // To alert if any program states intended to be impossible are reached.
 
-#include "enums.h"
-#include "core_game_structs.hpp"
-#include "Textarr.hpp"
-#include "descript_decls.h"
-#include "core_game_logic.hpp"
+#include "core game/enums.h"
+#include "core game/core_game_structs.hpp"
+#include "core game/Textarr.hpp"
+#include "core game/descript_decls.h"
+#include "core game/core_game_logic.hpp"
 
 ;static std::int_least8_t parse_com_check(const char** arr,int arr_size){
     for (ibyte i=0;i<arr_size;i++){
